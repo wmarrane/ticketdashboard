@@ -1,0 +1,23 @@
+import { describe, it, expect } from 'vitest';
+import { loadConfig } from '../src/config';
+
+describe('loadConfig', () => {
+  it('lê valores do ambiente com defaults', () => {
+    const cfg = loadConfig({
+      CLICKHOUSE_URL: 'http://192.168.56.127:8123',
+      CLICKHOUSE_USER: 'wagner',
+      CLICKHOUSE_PASSWORD: 'x',
+      CLICKHOUSE_DATABASE: 'tickets',
+      PORT: '3001',
+    });
+    expect(cfg.clickhouse.url).toBe('http://192.168.56.127:8123');
+    expect(cfg.clickhouse.username).toBe('wagner');
+    expect(cfg.port).toBe(3001);
+  });
+
+  it('usa defaults quando variáveis ausentes', () => {
+    const cfg = loadConfig({});
+    expect(cfg.clickhouse.database).toBe('tickets');
+    expect(cfg.port).toBe(3001);
+  });
+});
