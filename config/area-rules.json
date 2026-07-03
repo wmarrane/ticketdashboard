@@ -1,0 +1,4 @@
+{
+  "Financeiro": ["fatura", "pagamento", "invoice", "cnab", "nfs-e", "nfse", "fiscal", "cobrança", "billing", "contas a pagar", "contas a receber", "boleto", "imposto", "tax", "remessa bancária"],
+  "Estoque": ["estoque", "inventário", "inventory", "item", "remessa", "warehouse", "transferência", "expedição", "recebimento", "wms"]
+}
