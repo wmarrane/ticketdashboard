@@ -40,9 +40,11 @@ describe('parseSpreadsheet', () => {
 
   it('normaliza espaços não separáveis no ID', () => {
     const buf = buildXlsx([HEADER,
-      ['6955434 ', 'Backlog', 'X', '', '', '', '', '', '', '']]);
+      ['6955434 ', 'Backlog', 'X', '', '', '', '', '', '', ''],
+      ['12 34', 'Backlog', 'Y', '', '', '', '', '', '', '']]);
     const { rows } = parseSpreadsheet(buf);
     expect(rows[0].ticketId).toBe('6955434');
+    expect(rows[1].ticketId).toBe('12 34');
   });
 
   it('linha totalmente vazia é ignorada silenciosamente', () => {

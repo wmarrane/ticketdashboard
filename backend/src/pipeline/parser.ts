@@ -24,7 +24,7 @@ const COLUMNS: Record<string, keyof ParsedRow> = {
 };
 
 function clean(v: unknown): string {
-  return String(v ?? '').replace(/ /g, ' ').trim();
+  return String(v ?? '').replace(/ /g, ' ').trim();
 }
 
 function toIsoDate(v: unknown): string | null {
@@ -63,7 +63,10 @@ export function parseSpreadsheet(buffer: Buffer): ParseResult {
     });
     const ticketId = clean(rec.ticketId);
     const status = clean(rec.status);
-    const isEmpty = ticketId === '' && status === '' && clean(rec.taskName) === '';
+    const isEmpty = ticketId === '' && status === '' && clean(rec.taskName) === '' &&
+      clean(rec.taskNameEn) === '' && clean(rec.dueDate) === '' && clean(rec.responsible) === '' &&
+      clean(rec.priorityLabel) === '' && clean(rec.priorityLevel) === '' && clean(rec.summary) === '' &&
+      clean(rec.provider) === '';
     if (isEmpty) continue;
     if (!ticketId) { rejected.push({ rowNumber: i + 1, reason: 'ticket_id ausente' }); continue; }
     if (!status) { rejected.push({ rowNumber: i + 1, reason: 'status ausente' }); continue; }
