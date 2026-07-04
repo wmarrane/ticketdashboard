@@ -47,6 +47,10 @@ CREATE TABLE IF NOT EXISTS tickets.silver_tickets (
   loaded_at DateTime
 ) ENGINE = MergeTree ORDER BY ticket_id;
 
+-- Migração idempotente: hint de área vindo do adaptador da fonte
+-- (Estoque daily → 'Estoque' / Loop 'Sistema' / Wrike 'Módulo Processo').
+ALTER TABLE tickets.bronze_tickets_raw ADD COLUMN IF NOT EXISTS area_hint String;
+
 CREATE OR REPLACE VIEW tickets.gold_big_numbers AS
 SELECT
   count() AS total_tickets,

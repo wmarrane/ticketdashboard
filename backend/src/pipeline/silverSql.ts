@@ -46,7 +46,7 @@ SELECT ticket_id, source, status, task_name, task_name_en,
        ${STEP_PT} AS step_pt,
        ${STEP_EN} AS step_en,
        if(status NOT IN ('Completed', 'Cancelled', 'Stopped'), 1, 0) AS is_open,
-       ${areaRegexSql()} AS area,
+       if(area_hint != '', area_hint, ${areaRegexSql()}) AS area,
        loaded_at
 FROM (
   SELECT *, ROW_NUMBER() OVER (PARTITION BY ticket_id ORDER BY loaded_at DESC) AS rn

@@ -41,4 +41,8 @@ describe('buildSilverSql', () => {
     expect(sql).toContain("'Financeiro'");
     expect(sql).toContain("'Outros'");
   });
+
+  it('area_hint da fonte tem precedência sobre as keywords', () => {
+    expect(sql).toContain("if(area_hint != '', area_hint, multiIf(");
+  });
 });

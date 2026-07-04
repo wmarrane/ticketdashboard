@@ -82,6 +82,17 @@ describe('API', () => {
     expect(fakeDeps.runLoad.mock.calls.length).toBe(before);
   });
 
+  it('POST /api/upload responde 400 para layout de planilha não reconhecido', async () => {
+    const before = fakeDeps.runLoad.mock.calls.length;
+    const res = await request(app).post('/api/upload')
+      .field('source', 'wrike')
+      .attach('file', sheetToBuffer([['Foo', 'Bar'], ['1', '2']]), 'estranha.xlsx');
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/Layout de planilha não reconhecido/);
+    expect(res.body.error).toMatch(/Wrike/);
+    expect(fakeDeps.runLoad.mock.calls.length).toBe(before);
+  });
+
   it('POST /api/upload responde 500 genérico sem vazar detalhes internos', async () => {
     const failing = createApp({
       ...fakeDeps,

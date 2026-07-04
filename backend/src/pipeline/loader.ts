@@ -27,6 +27,7 @@ export async function runLoad(source: string, fileName: string, parsed: ParseRes
       due_date: r.dueDate ?? '', responsible: r.responsible,
       priority_label: r.priorityLabel, priority_level: r.priorityLevel,
       summary: r.summary, provider: r.provider,
+      area_hint: r.areaHint ?? '',
     })),
   });
 

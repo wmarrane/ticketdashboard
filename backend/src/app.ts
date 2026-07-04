@@ -1,6 +1,6 @@
 import express, { type Express } from 'express';
 import multer, { MulterError } from 'multer';
-import { parseSpreadsheet, type ParseResult } from './pipeline/parser.js';
+import { parseSpreadsheet, UnknownLayoutError, type ParseResult } from './pipeline/parser.js';
 
 export interface Deps {
   runLoad: (source: string, fileName: string, parsed: ParseResult)
@@ -29,6 +29,9 @@ export function createApp(deps: Deps): Express {
       const result = await deps.runLoad(source, req.file.originalname, parsed);
       res.json({ ...result, rejected: parsed.rejected });
     } catch (err) {
+      if (err instanceof UnknownLayoutError) {
+        return res.status(400).json({ error: err.message });
+      }
       console.error(err);
       res.status(500).json({ error: 'Erro interno.' });
     }
