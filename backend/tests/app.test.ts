@@ -33,6 +33,19 @@ describe('API', () => {
     expect(res.status).toBe(200);
     expect(res.body.loadId).toBe('abc');
     expect(fakeDeps.runLoad).toHaveBeenCalledWith('wrike', 'board.xlsx', expect.anything());
+    expect(res.body.rejected).toEqual([]);
+  });
+
+  it('POST /api/upload rejeita requisição sem arquivo', async () => {
+    const res = await request(app).post('/api/upload')
+      .field('source', 'wrike');
+    expect(res.status).toBe(400);
+  });
+
+  it('POST /api/upload rejeita requisição JSON não-multipart sem crash', async () => {
+    const res = await request(app).post('/api/upload')
+      .send({ source: 'wrike' });
+    expect(res.status).toBe(400);
   });
 
   it('POST /api/upload rejeita fonte inválida', async () => {
