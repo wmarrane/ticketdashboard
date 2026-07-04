@@ -38,10 +38,10 @@ Uma linha por evento de carga. ENGINE MergeTree, ORDER BY `loaded_at`.
 | `loaded_at` | DateTime | Momento da carga |
 | `rows_accepted` | UInt32 | Linhas aceitas (inseridas na bronze) |
 | `rows_rejected` | UInt32 | Linhas rejeitadas pelo parser (não inseridas) |
-| `status` | LowCardinality(String) | `success` (gravado após inserir na bronze) ou `transform_error` (registro adicional gravado se o rebuild silver falhar) |
+| `status` | LowCardinality(String) | `success` (gravado **somente após o rebuild da silver terminar sem erro**) ou `transform_error` (gravado no lugar do `success` se o rebuild falhar) |
 | `error` | String | Mensagem de erro quando `status = 'transform_error'`; vazio em sucesso |
 
-A reconstrução da silver considera apenas a **última carga com `status = 'success'` de cada fonte** (`argMax(load_id, loaded_at)`).
+A reconstrução da silver considera a **última carga com `status = 'success'` de cada fonte** (`argMax(load_id, loaded_at)`); o lote corrente entra via `UNION ALL` explícito porque seu registro `success` só é gravado depois da transformação. Um lote falho nunca recebe `success` e, portanto, nunca é selecionado em rebuilds futuros.
 
 ## Silver — `tickets.silver_tickets`
 

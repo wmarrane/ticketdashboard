@@ -36,7 +36,7 @@ Linhas rejeitadas **não entram no banco**. A tabela de rejeições mostra o nú
 | `ticket_id ausente` | Coluna "ID Netsoft / Oracle" vazia | Preencher o ID na planilha e reenviar |
 | `status ausente` | Coluna "Status" vazia | Preencher o status e reenviar |
 
-Linhas totalmente vazias são ignoradas silenciosamente (não contam como rejeição). Erros de requisição (fonte inválida, extensão não suportada, arquivo ausente) bloqueiam o upload inteiro e aparecem como mensagem de erro.
+Linhas totalmente vazias são ignoradas silenciosamente (não contam como rejeição). Erros de requisição (fonte inválida, extensão não suportada, arquivo ausente) bloqueiam o upload inteiro e aparecem como mensagem de erro. Uma planilha **sem nenhuma linha válida** (só cabeçalho, ou todas as linhas rejeitadas) é recusada com HTTP 400 (`Planilha sem linhas válidas.`) **antes de qualquer escrita no banco** — os dados existentes da fonte não são apagados.
 
 ## 4. Ajustar regras de área (Financeiro/Estoque)
 

@@ -30,7 +30,7 @@ Fontes (exportação manual: Wrike, Loop, Office 365 → Excel/CSV)
 | Banco | ClickHouse (HTTP, porta 8123), banco `tickets` |
 | BI | Apache Superset (Docker) + driver `clickhouse-connect` |
 | Deploy | Docker Compose (servidor 192.168.56.132) |
-| Testes | Vitest (23 unitários + 1 integração) |
+| Testes | Vitest (28 unitários + 1 integração) |
 
 ## Quickstart
 
