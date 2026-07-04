@@ -4,6 +4,8 @@ export interface ParsedRow {
   ticketId: string; status: string; taskName: string; taskNameEn: string;
   dueDate: string | null; responsible: string; priorityLabel: string;
   priorityLevel: string; summary: string; provider: string;
+  /** Responsável pela correção (regra 5): Wrike='Netsoft', Loop=FixTeam, Estoque=Time. */
+  fixOwner: string;
   areaHint: '' | 'Financeiro' | 'Estoque';
 }
 

@@ -36,7 +36,9 @@ export const wrikeExport: SourceAdapter = {
     priorityLabel: clean(rec[W.prioridade]),
     priorityLevel: clean(rec[W.priority]).toUpperCase(),
     summary: '',
-    provider: '',
+    // Regra 1: export do board Wrike é sempre atendido pela Netsoft.
+    provider: 'Netsoft',
+    fixOwner: 'Netsoft',
     areaHint: areaHint(clean(rec[W.modulo])),
   }),
 };

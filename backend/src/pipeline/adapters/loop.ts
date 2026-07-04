@@ -32,6 +32,7 @@ export const loop: SourceAdapter = {
     const ticketId = netsoft && netsoft !== '-'
       ? netsoft
       : (taskName ? syntheticId('loop', taskName) : '');
+    const fixTeam = clean(rec[L.fixTeam]);
     return {
       ticketId,
       status: normalizeStatus(rec[L.status]),
@@ -39,11 +40,14 @@ export const loop: SourceAdapter = {
       taskNameEn: '',
       // Datas pt-BR sem ano ('qua., 20 de mai.') não são parseáveis → null.
       dueDate: toIsoDate(rec[L.fixDate]),
-      responsible: clean(rec[L.fixTeam]),
+      responsible: '',
       priorityLabel: '',
       priorityLevel: '',
       summary: [clean(rec[L.solution]), clean(rec[L.atualizacoes])].filter(Boolean).join(' / '),
-      provider: '',
+      // Regra 4: Squad Finance atende via SISCORP.
+      provider: fixTeam.toLowerCase() === 'squad finance' ? 'SISCORP' : '',
+      // Regra 5: FixTeam é quem corrige, não o responsável do cliente.
+      fixOwner: fixTeam,
       areaHint: areaHint(clean(rec[L.sistema])),
     };
   },

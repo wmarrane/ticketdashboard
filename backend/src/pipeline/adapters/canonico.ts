@@ -29,6 +29,7 @@ export const canonico: SourceAdapter = {
     priorityLevel: clean(rec[C.priority]).toUpperCase(),
     summary: clean(rec[C.resumo]),
     provider: clean(rec[C.provedor]),
+    fixOwner: '',
     areaHint: '',
   }),
 };

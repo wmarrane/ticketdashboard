@@ -89,6 +89,12 @@ describe('adaptador Wrike export', () => {
     expect(rows[0].areaHint).toBe('Estoque');
     expect(rows[1].areaHint).toBe('');
   });
+
+  it('regra 1: provider e fix_owner fixos em Netsoft', () => {
+    const { rows } = parseSpreadsheet(buildXlsx([WRIKE_HEADER, wrikeRow()]));
+    expect(rows[0].provider).toBe('Netsoft');
+    expect(rows[0].fixOwner).toBe('Netsoft');
+  });
 });
 
 describe('adaptador Loop (Follow up)', () => {
@@ -99,10 +105,26 @@ describe('adaptador Loop (Follow up)', () => {
       status: 'Completed',
       taskName: 'Billing lag (NS pagou) — 40 casos com webhook de pagamento sem baixa',
       dueDate: null,
-      responsible: 'Squad Finance',
+      responsible: '',
+      fixOwner: 'Squad Finance',
       areaHint: 'Financeiro',
     });
     expect(rows[0].ticketId).toMatch(/^loop-[0-9a-f]{8}$/);
+  });
+
+  it('regra 5: FixTeam vira fix_owner e responsible fica vazio', () => {
+    const { rows } = parseSpreadsheet(buildXlsx([LOOP_HEADER, loopRow({ fixteam: 'Netsoft' })]));
+    expect(rows[0].fixOwner).toBe('Netsoft');
+    expect(rows[0].responsible).toBe('');
+  });
+
+  it('regra 4: FixTeam Squad Finance → provider SISCORP (case-insensitive, com espaços)', () => {
+    const { rows } = parseSpreadsheet(buildXlsx([LOOP_HEADER,
+      loopRow({ fixteam: 'Squad Finance' }),
+      loopRow({ fixteam: ' squad finance ' }),
+      loopRow({ fixteam: 'SQUAD FINANCE' }),
+      loopRow({ fixteam: 'Netsoft' })]));
+    expect(rows.map((r) => r.provider)).toEqual(['SISCORP', 'SISCORP', 'SISCORP', '']);
   });
 
   it('ID sintético é determinístico: mesmo título → mesmo id; título diferente → id diferente', () => {
@@ -231,6 +253,58 @@ describe('adaptador Estoque daily', () => {
     expect(rows[0].dueDate).toBeNull();
     expect(rows[0].summary).toContain('Ajustar junto com o script');
     expect(rows[0].summary).toContain('obs');
+  });
+
+  it('regra 5: coluna Time abastece fix_owner E provider', () => {
+    const { rows } = parseSpreadsheet(buildXlsx([ESTOQUE_HEADER, estoqueRow({ time: 'SISCORP ' })]));
+    expect(rows[0].fixOwner).toBe('SISCORP');
+    expect(rows[0].provider).toBe('SISCORP');
+  });
+});
+
+describe('regras compartilhadas (pós-processamento do parser)', () => {
+  it('regra 2: prioridade vazia → Normal/P2 em todas as fontes (inclusive canônico)', () => {
+    const canon = parseSpreadsheet(buildXlsx([
+      ['ID Netsoft / Oracle', 'Status', 'Nome da Tarefa', 'Prioridade', 'Priority'],
+      ['1', 'Backlog', 'Sem prioridade', '', ''],
+      ['2', 'Backlog', 'Só level', '', 'P0']]));
+    expect(canon.rows[0].priorityLabel).toBe('Normal');
+    expect(canon.rows[0].priorityLevel).toBe('P2');
+    // label vazio → 'Normal' SEMPRE, mesmo com level P0/P1 (confirmado no spec)
+    expect(canon.rows[1].priorityLabel).toBe('Normal');
+    expect(canon.rows[1].priorityLevel).toBe('P0');
+
+    const lp = parseSpreadsheet(buildXlsx([LOOP_HEADER, loopRow()]));
+    expect(lp.rows[0].priorityLabel).toBe('Normal');
+    expect(lp.rows[0].priorityLevel).toBe('P2');
+  });
+
+  it('regra 2: prioridade preenchida não é alterada', () => {
+    const { rows } = parseSpreadsheet(buildXlsx([WRIKE_HEADER, wrikeRow()]));
+    expect(rows[0].priorityLabel).toBe('Alta');
+    expect(rows[0].priorityLevel).toBe('P1');
+  });
+
+  it('regra 7: task_name_en vazio é traduzido via glossário', () => {
+    const { rows } = parseSpreadsheet(buildXlsx([WRIKE_HEADER,
+      wrikeRow({ nome: 'Erro de pagamento na fatura' })]));
+    expect(rows[0].taskNameEn).toBe('Error de payment na invoice');
+  });
+
+  it('regra 7: task_name_en preenchido no canônico não é sobrescrito', () => {
+    const { rows } = parseSpreadsheet(buildXlsx([
+      ['ID Netsoft / Oracle', 'Status', 'Nome da Tarefa', 'Nome da Tarefa - ENG'],
+      ['1', 'Backlog', 'Erro de pagamento', 'Payment issue'],
+      ['2', 'Backlog', 'Erro de pagamento', '']]));
+    expect(rows[0].taskNameEn).toBe('Payment issue');
+    expect(rows[1].taskNameEn).toBe('Error de payment');
+  });
+
+  it('canônico: fix_owner fica vazio', () => {
+    const { rows } = parseSpreadsheet(buildXlsx([
+      ['ID Netsoft / Oracle', 'Status', 'Nome da Tarefa'],
+      ['1', 'Backlog', 'Teste']]));
+    expect(rows[0].fixOwner).toBe('');
   });
 });
 

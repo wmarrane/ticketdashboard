@@ -56,6 +56,8 @@ export const estoqueDaily: SourceAdapter = {
       priorityLevel: level,
       summary: summaryParts.filter(Boolean).join(' | '),
       provider: clean(rec[E.time]),
+      // Regra 5: Time também é o responsável pela correção.
+      fixOwner: clean(rec[E.time]),
       areaHint: 'Estoque',
     };
   },

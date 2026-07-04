@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import { ADAPTERS } from './adapters/index.js';
 import { clean, normalizeHeader, type ParsedRow, type RowRecord } from './adapters/shared.js';
+import { translateTitle } from './glossary.js';
 
 export type { ParsedRow } from './adapters/shared.js';
 
@@ -39,6 +40,11 @@ export function parseSpreadsheet(buffer: Buffer): ParseResult {
     // só linhas realmente não identificáveis são rejeitadas.
     if (!row.ticketId) { rejected.push({ rowNumber: i + 1, reason: 'ticket_id ausente' }); continue; }
     if (!row.status) { rejected.push({ rowNumber: i + 1, reason: 'status ausente' }); continue; }
+    // Regra 2: prioridade default para TODAS as fontes (inclusive canônico).
+    if (!row.priorityLabel) row.priorityLabel = 'Normal';
+    if (!row.priorityLevel) row.priorityLevel = 'P2';
+    // Regra 7: tradução automática do título quando a fonte não traz o EN.
+    if (!row.taskNameEn) row.taskNameEn = translateTitle(row.taskName);
     rows.push(row);
   }
   return { rows, rejected };
