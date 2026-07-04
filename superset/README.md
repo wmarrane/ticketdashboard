@@ -21,9 +21,11 @@ O Superset precisa do driver `clickhouse-connect` instalado no ambiente Python
 do Superset. Se o Superset roda em Docker:
 
 ```bash
-docker exec superset pip install clickhouse-connect
+docker exec -u root superset uv pip install --python /app/.venv/bin/python clickhouse-connect
 docker restart superset
 ```
+
+> Em imagens mais antigas do Superset (sem venv), `docker exec superset pip install clickhouse-connect` é suficiente.
 
 ## Conexão de banco
 
