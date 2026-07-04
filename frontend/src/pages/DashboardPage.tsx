@@ -34,6 +34,11 @@ export default function DashboardPage({ lang }: { lang: Lang }) {
 
   return (
     <main>
+      <div className="toolbar">
+        <button className="btn" onClick={() => { window.location.href = '/api/export'; }}>
+          {t(lang, 'exportExcel')}
+        </button>
+      </div>
       <div className="big-numbers">
         <BigNumber value={data.bigNumbers.total_tickets} label={t(lang, 'totalTickets')} />
         <BigNumber value={data.bigNumbers.urgent_open} label={t(lang, 'urgentOpen')} />

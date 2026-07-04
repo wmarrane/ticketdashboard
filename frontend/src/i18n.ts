@@ -22,6 +22,7 @@ export const messages: Record<Lang, Record<string, string>> = {
     history: 'Histórico de cargas', loadedAt: 'Data da carga',
     reason: 'Motivo', row: 'Linha', noData: 'Sem dados — faça um upload.',
     uploadSuccess: 'Carga concluída', uploadError: 'Erro na carga',
+    exportExcel: 'Exportar Excel',
   },
   en: {
     title: 'Ticket Tracking Dashboard',
@@ -44,6 +45,7 @@ export const messages: Record<Lang, Record<string, string>> = {
     history: 'Load history', loadedAt: 'Loaded at',
     reason: 'Reason', row: 'Row', noData: 'No data — upload a spreadsheet.',
     uploadSuccess: 'Load completed', uploadError: 'Load failed',
+    exportExcel: 'Export to Excel',
   },
 };
 
