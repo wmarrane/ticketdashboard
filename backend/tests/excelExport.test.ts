@@ -13,8 +13,10 @@ function ticket(overrides: Partial<ExportTicket>): ExportTicket {
     due_date: null,
     responsible: '',
     priority_label: '',
+    priority_label_en: '',
     priority_level: '',
     provider: '',
+    fix_owner: '',
     step_pt: '',
     step_en: '',
     is_open: 1,
@@ -29,14 +31,14 @@ const data: ExportData = {
       ticket_id: '100', source: 'wrike', status: 'In Progress',
       task_name: 'Tarefa Um', task_name_en: 'Task One',
       due_date: '2026-07-10', responsible: 'ana@ituran.com.br',
-      priority_label: 'Urgente!', priority_level: 'P0', provider: 'Oracle',
+      priority_label: 'Urgente!', priority_label_en: 'Urgent!', priority_level: 'P0', provider: 'Oracle',
       step_pt: 'Em análise pelo fornecedor', step_en: 'Under Vendor Analysis',
       is_open: 1,
     }),
     ticket({
       ticket_id: '200', source: 'wrike', status: 'Completed',
       task_name: 'Tarefa Dois', task_name_en: 'Task Two',
-      priority_label: 'Normal', priority_level: 'P3',
+      priority_label: 'Normal', priority_label_en: 'Normal', priority_level: 'P3',
       step_pt: 'Em produção', step_en: 'In Production',
       is_open: 0,
     }),
@@ -44,7 +46,7 @@ const data: ExportData = {
       ticket_id: '300', source: 'loop', status: 'Pendente Terceiros',
       task_name: 'Tarefa Três', task_name_en: 'Task Three',
       due_date: '2026-08-01', responsible: 'bruno@ituran.com.br',
-      priority_label: 'Alta', priority_level: 'P1', provider: 'Netsoft',
+      priority_label: 'Alta', priority_label_en: 'High', priority_level: 'P1', provider: 'Netsoft',
       step_pt: 'Chamado Oracle', step_en: 'Oracle Ticket',
       is_open: 1,
     }),
@@ -182,11 +184,22 @@ describe('buildWorkbook', () => {
     expect(ws.getCell('G5').value).toBe('Completed');
     expect(ws.getCell('A7').value).toBe('DISTRIBUTION BY WRIKE STATUS');
     expect(ws.getCell('A12').value).toBe('Pending Third Parties');
-    expect(ws.getCell('E9').value).toBe('Urgent');
+    // Distribuição por prioridade usa priority_label_en vindo da silver
+    expect(ws.getCell('E9').value).toBe('Urgent!');
+    expect(ws.getCell('E10').value).toBe('High');
+    expect(ws.getCell('E11').value).toBe('Normal');
+    // 'Baixa' sem ticket na base → fallback do de-para estático
     expect(ws.getCell('E12').value).toBe('Low');
     expect(ws.getCell('I8').value).toBe('Wrike Status');
     expect(ws.getCell('J9').value).toBe('Task One');
     expect(ws.getCell('M9').value).toBe('Under Vendor Analysis');
+  });
+
+  it('Dashboard (PT) mantém rótulos de prioridade em português', () => {
+    const ws = wb.getWorksheet('Dashboard')!;
+    expect(ws.getCell('E9').value).toBe('Urgente!');
+    expect(ws.getCell('E10').value).toBe('Alta');
+    expect(ws.getCell('E12').value).toBe('Baixa');
   });
 
   it('Dashboard (EN) faz fallback para task_name quando task_name_en vazio', async () => {

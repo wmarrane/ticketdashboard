@@ -31,7 +31,7 @@ interface DashboardTexts {
   statusHeader: [string, string, string];
   prioritySection: string;
   priorityHeader: [string, string, string];
-  priorityLabels: Record<string, string>;
+  priorityLabel: (row: { label: string; labelEn: string }) => string;
   levelSection: string;
   levelHeader: [string, string, string];
   cardsSection: string;
@@ -41,6 +41,9 @@ interface DashboardTexts {
   taskName: (t: ExportTicket) => string;
   step: (t: ExportTicket) => string;
 }
+
+const EN_PRIORITY_FALLBACK: Record<string, string> =
+  { 'Urgente!': 'Urgent!', Alta: 'High', Normal: 'Normal', Baixa: 'Low' };
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const fmtPt = (d: Date) => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
@@ -54,7 +57,7 @@ const TEXTS_PT: DashboardTexts = {
   statusHeader: ['Status', 'Qtd', '%'],
   prioritySection: 'DISTRIBUIÇÃO POR PRIORIDADE',
   priorityHeader: ['Prioridade', 'Qtd', '%'],
-  priorityLabels: { 'Urgente!': 'Urgente!', Alta: 'Alta', Normal: 'Normal', Baixa: 'Baixa' },
+  priorityLabel: (r) => r.label,
   levelSection: 'NÍVEL DE PRIORIDADE (P0–P5)',
   levelHeader: ['Nível', 'Qtd', '%'],
   cardsSection: 'CARDS PRIORITÁRIOS (P0/P1) ATIVOS — FOCO IMEDIATO',
@@ -73,7 +76,8 @@ const TEXTS_EN: DashboardTexts = {
   statusHeader: ['Status', 'Qty', '%'],
   prioritySection: 'DISTRIBUTION BY PRIORITY',
   priorityHeader: ['Priority', 'Qty', '%'],
-  priorityLabels: { 'Urgente!': 'Urgent', Alta: 'High', Normal: 'Normal', Baixa: 'Low' },
+  // Usa priority_label_en da silver; base sem o rótulo → de-para estático (regra 6).
+  priorityLabel: (r) => r.labelEn || EN_PRIORITY_FALLBACK[r.label] || r.label,
   levelSection: 'PRIORITY LEVEL (P0–P5)',
   levelHeader: ['Level', 'Qty', '%'],
   cardsSection: 'ACTIVE PRIORITY CARDS (P0/P1) — IMMEDIATE FOCUS',
@@ -111,7 +115,7 @@ interface Aggregates {
   waitingThirdParties: number;
   completed: number;
   statusRows: { status: string; qty: number }[];
-  priorityRows: { label: string; qty: number }[];
+  priorityRows: { label: string; labelEn: string; qty: number }[];
   priorityTotal: number;
   levelRows: { level: string; qty: number }[];
   levelTotal: number;
@@ -129,8 +133,12 @@ function aggregate(tickets: ExportTicket[]): Aggregates {
     status, qty: countBy((t) => t.status === status),
   }));
 
+  // priority_label_en vem da silver (regra 6); vazio → fallback estático na aba EN.
   const priorityRows = PRIORITY_LABELS.map((label) => ({
-    label, qty: countBy((t) => t.priority_label === label),
+    label,
+    labelEn: tickets.find((t) => t.priority_label === label && t.priority_label_en)
+      ?.priority_label_en ?? '',
+    qty: countBy((t) => t.priority_label === label),
   }));
   const levelRows = PRIORITY_LEVELS.map((level) => ({
     level, qty: countBy((t) => t.priority_level === level),
@@ -308,7 +316,7 @@ function addDashboardSheet(wb: ExcelJS.Workbook, name: string,
   sectionTitle('E7', texts.prioritySection, 'G7');
   tableHeader(8, ['E', 'F', 'G'], texts.priorityHeader);
   smallTable(9,
-    agg.priorityRows.map((r2) => ({ label: texts.priorityLabels[r2.label] ?? r2.label, qty: r2.qty })),
+    agg.priorityRows.map((r2) => ({ label: texts.priorityLabel(r2), qty: r2.qty })),
     agg.priorityTotal, texts.total);
 
   // Nível de prioridade (E15..E23)

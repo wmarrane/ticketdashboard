@@ -1,11 +1,12 @@
 export interface BigNumbers { total_tickets: number; urgent_open: number; open_items: number; completed: number }
 export interface StatusRow { status: string; step_pt: string; step_en: string; qty: number; pct: number }
-export interface PriorityRow { priority_label: string; qty: number; pct: number }
+export interface PriorityRow { priority_label: string; priority_label_en: string; qty: number; pct: number }
 export interface LevelRow { priority_level: string; qty: number; pct: number }
 export interface TicketRow {
   ticket_id: string; task_name: string; task_name_en: string;
-  priority_level: string; priority_label: string; status: string;
-  step_pt: string; step_en: string; responsible: string; due_date: string | null;
+  priority_level: string; priority_label: string; priority_label_en: string;
+  status: string; step_pt: string; step_en: string; responsible: string;
+  fix_owner: string; due_date: string | null;
 }
 export interface DashboardData {
   bigNumbers: BigNumbers; statusDistribution: StatusRow[];

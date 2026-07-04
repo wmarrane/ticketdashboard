@@ -9,8 +9,10 @@ export interface ExportTicket {
   due_date: string | null; // 'AAAA-MM-DD'
   responsible: string;
   priority_label: string;
+  priority_label_en: string;
   priority_level: string;
   provider: string;
+  fix_owner: string;
   step_pt: string;
   step_en: string;
   is_open: number;
@@ -25,8 +27,8 @@ export async function fetchExportData(): Promise<ExportData> {
   const rs = await getClient().query({
     query: `
       SELECT ticket_id, source, status, task_name, task_name_en,
-             due_date, responsible, priority_label, priority_level,
-             provider, step_pt, step_en, is_open
+             due_date, responsible, priority_label, priority_label_en,
+             priority_level, provider, fix_owner, step_pt, step_en, is_open
       FROM tickets.silver_tickets
       ORDER BY source, ticket_id
     `,

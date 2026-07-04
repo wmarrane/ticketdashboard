@@ -54,7 +54,9 @@ export default function DashboardPage({ lang }: { lang: Lang }) {
         <DataTable
           title={t(lang, 'priorityDistribution')}
           headers={[t(lang, 'priority'), t(lang, 'qty'), t(lang, 'pct')]}
-          rows={data.priorityDistribution.map((r) => [r.priority_label, r.qty, pctFmt(r.pct)])}
+          rows={data.priorityDistribution.map((r) => [
+            lang === 'en' ? r.priority_label_en || r.priority_label : r.priority_label,
+            r.qty, pctFmt(r.pct)])}
         />
         <DataTable
           title={t(lang, 'priorityLevels')}
