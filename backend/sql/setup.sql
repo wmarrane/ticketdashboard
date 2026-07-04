@@ -61,7 +61,7 @@ SELECT
   any(step_pt) AS step_pt,
   any(step_en) AS step_en,
   count() AS qty,
-  round(count() / (SELECT count() FROM tickets.silver_tickets), 4) AS pct
+  round(count() / sum(count()) OVER (), 4) AS pct
 FROM tickets.silver_tickets
 GROUP BY status
 ORDER BY qty DESC;
@@ -70,7 +70,7 @@ CREATE OR REPLACE VIEW tickets.gold_priority_distribution AS
 SELECT
   priority_label,
   count() AS qty,
-  round(count() / (SELECT countIf(priority_label != '') FROM tickets.silver_tickets), 4) AS pct
+  round(count() / sum(count()) OVER (), 4) AS pct
 FROM tickets.silver_tickets
 WHERE priority_label != ''
 GROUP BY priority_label
@@ -80,7 +80,7 @@ CREATE OR REPLACE VIEW tickets.gold_priority_levels AS
 SELECT
   priority_level,
   count() AS qty,
-  round(count() / (SELECT countIf(priority_level != '') FROM tickets.silver_tickets), 4) AS pct
+  round(count() / sum(count()) OVER (), 4) AS pct
 FROM tickets.silver_tickets
 WHERE priority_level != ''
 GROUP BY priority_level

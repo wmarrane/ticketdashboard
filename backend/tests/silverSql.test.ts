@@ -2,14 +2,29 @@ import { describe, it, expect } from 'vitest';
 import { buildSilverSql } from '../src/pipeline/silverSql';
 
 describe('buildSilverSql', () => {
-  const sql = buildSilverSql();
+  const current = { source: 'office365', loadId: '3f2504e0-4f89-41d3-9a0c-0305e82c3301' };
+  const sql = buildSilverSql(current);
 
   it('deduplica por ticket_id pegando a carga mais recente', () => {
     expect(sql).toContain('ROW_NUMBER() OVER (PARTITION BY ticket_id ORDER BY loaded_at DESC)');
   });
 
-  it('usa apenas o último lote de cada fonte', () => {
+  it('usa o último lote success das demais fontes', () => {
     expect(sql).toContain('argMax(load_id, loaded_at)');
+    expect(sql).toContain("status = 'success' AND source != 'office365'");
+  });
+
+  it('inclui o lote corrente via UNION ALL (antes do registro success)', () => {
+    expect(sql).toContain('UNION ALL');
+    expect(sql).toContain(`SELECT 'office365', '${current.loadId}'`);
+  });
+
+  it('rejeita fonte desconhecida', () => {
+    expect(() => buildSilverSql({ source: 'jira', loadId: current.loadId })).toThrow(/Fonte inválida/);
+  });
+
+  it('rejeita load_id que não seja UUID', () => {
+    expect(() => buildSilverSql({ source: 'wrike', loadId: "x'; DROP TABLE" })).toThrow(/load_id inválido/);
   });
 
   it('mapeia status para step_pt e step_en', () => {

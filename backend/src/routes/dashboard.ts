@@ -6,14 +6,24 @@ async function rows(query: string): Promise<unknown[]> {
 }
 
 export async function queryGold() {
-  const [bigNumbers] = await rows('SELECT * FROM tickets.gold_big_numbers');
+  const [
+    bigNumbersRows, statusDistribution, priorityDistribution,
+    priorityLevels, top5Financeiro, top5Estoque,
+  ] = await Promise.all([
+    rows('SELECT * FROM tickets.gold_big_numbers'),
+    rows('SELECT * FROM tickets.gold_status_distribution'),
+    rows('SELECT * FROM tickets.gold_priority_distribution'),
+    rows('SELECT * FROM tickets.gold_priority_levels'),
+    rows('SELECT * FROM tickets.gold_top5_financeiro'),
+    rows('SELECT * FROM tickets.gold_top5_estoque'),
+  ]);
   return {
-    bigNumbers,
-    statusDistribution: await rows('SELECT * FROM tickets.gold_status_distribution'),
-    priorityDistribution: await rows('SELECT * FROM tickets.gold_priority_distribution'),
-    priorityLevels: await rows('SELECT * FROM tickets.gold_priority_levels'),
-    top5Financeiro: await rows('SELECT * FROM tickets.gold_top5_financeiro'),
-    top5Estoque: await rows('SELECT * FROM tickets.gold_top5_estoque'),
+    bigNumbers: bigNumbersRows[0],
+    statusDistribution,
+    priorityDistribution,
+    priorityLevels,
+    top5Financeiro,
+    top5Estoque,
   };
 }
 

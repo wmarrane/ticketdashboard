@@ -24,7 +24,20 @@ function stepMultiIf(labelIndex: 1 | 2): string {
 const STEP_PT = stepMultiIf(1);
 const STEP_EN = stepMultiIf(2);
 
-export function buildSilverSql(): string {
+const VALID_SOURCES = new Set(['wrike', 'loop', 'office365']);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Reconstrói a silver a partir da última carga 'success' de cada fonte,
+// substituindo a carga corrente (ainda sem registro no load_history) pelo
+// par (source, load_id) recebido — o 'success' só é gravado depois que a
+// transformação termina sem erro.
+export function buildSilverSql(current: { source: string; loadId: string }): string {
+  if (!VALID_SOURCES.has(current.source)) {
+    throw new Error(`Fonte inválida para rebuild da silver: ${current.source}`);
+  }
+  if (!UUID_RE.test(current.loadId)) {
+    throw new Error(`load_id inválido para rebuild da silver: ${current.loadId}`);
+  }
   return `
 INSERT INTO tickets.silver_tickets
 SELECT ticket_id, source, status, task_name, task_name_en,
@@ -40,7 +53,9 @@ FROM (
   FROM tickets.bronze_tickets_raw
   WHERE (source, load_id) IN (
     SELECT source, argMax(load_id, loaded_at) FROM tickets.load_history
-    WHERE status = 'success' GROUP BY source
+    WHERE status = 'success' AND source != '${current.source}' GROUP BY source
+    UNION ALL
+    SELECT '${current.source}', '${current.loadId}'
   )
 )
 WHERE rn = 1`;

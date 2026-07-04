@@ -23,26 +23,31 @@ export function createApp(deps: Deps): Express {
     if (!EXTENSIONS.test(req.file.originalname)) return res.status(400).json({ error: 'Extensão não suportada. Use .xlsx ou .csv.' });
     try {
       const parsed = parseSpreadsheet(req.file.buffer);
+      if (parsed.rows.length === 0) {
+        return res.status(400).json({ error: 'Planilha sem linhas válidas.', rejected: parsed.rejected });
+      }
       const result = await deps.runLoad(source, req.file.originalname, parsed);
       res.json({ ...result, rejected: parsed.rejected });
     } catch (err) {
-      res.status(500).json({ error: String(err) });
+      console.error(err);
+      res.status(500).json({ error: 'Erro interno.' });
     }
   });
 
   app.get('/api/dashboard', async (_req, res) => {
     try { res.json(await deps.queryGold()); }
-    catch (err) { res.status(500).json({ error: String(err) }); }
+    catch (err) { console.error(err); res.status(500).json({ error: 'Erro interno.' }); }
   });
 
   app.get('/api/uploads', async (_req, res) => {
     try { res.json(await deps.listUploads()); }
-    catch (err) { res.status(500).json({ error: String(err) }); }
+    catch (err) { console.error(err); res.status(500).json({ error: 'Erro interno.' }); }
   });
 
   app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     if (err instanceof MulterError) return res.status(400).json({ error: `Upload inválido: ${err.message}` });
-    res.status(500).json({ error: String(err) });
+    console.error(err);
+    res.status(500).json({ error: 'Erro interno.' });
   });
 
   return app;

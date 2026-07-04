@@ -10,6 +10,7 @@ export default function UploadPage({ lang }: { lang: Lang }) {
   const [error, setError] = useState('');
   const [history, setHistory] = useState<UploadHistoryRow[]>([]);
   const [busy, setBusy] = useState(false);
+  const [inputKey, setInputKey] = useState(0);
 
   const loadHistory = () => fetchUploads().then(setHistory).catch(() => {});
   useEffect(() => { loadHistory(); }, []);
@@ -20,6 +21,8 @@ export default function UploadPage({ lang }: { lang: Lang }) {
     setBusy(true); setError(''); setResult(null);
     try {
       setResult(await uploadFile(source, file));
+      setFile(null);
+      setInputKey((k) => k + 1);
       loadHistory();
     } catch (err) {
       setError(String(err));
@@ -42,7 +45,7 @@ export default function UploadPage({ lang }: { lang: Lang }) {
         </label>
         <label>
           {t(lang, 'file')}
-          <input type="file" accept=".xlsx,.csv" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+          <input key={inputKey} type="file" accept=".xlsx,.csv" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         </label>
         <button type="submit" disabled={!file || busy}>{t(lang, 'send')}</button>
         {error && <p className="error">{t(lang, 'uploadError')}: {error}</p>}
