@@ -38,8 +38,10 @@ CREATE TABLE IF NOT EXISTS tickets.silver_tickets (
   due_date Nullable(Date),
   responsible String,
   priority_label LowCardinality(String),
+  priority_label_en LowCardinality(String),
   priority_level LowCardinality(String),
   provider String,
+  fix_owner String,
   step_pt String,
   step_en String,
   is_open UInt8,
@@ -50,6 +52,13 @@ CREATE TABLE IF NOT EXISTS tickets.silver_tickets (
 -- Migração idempotente: hint de área vindo do adaptador da fonte
 -- (Estoque daily → 'Estoque' / Loop 'Sistema' / Wrike 'Módulo Processo').
 ALTER TABLE tickets.bronze_tickets_raw ADD COLUMN IF NOT EXISTS area_hint String;
+
+-- Migração idempotente: responsável pela correção (regra 5) e rótulo de
+-- prioridade em inglês (regra 6). A silver é TRUNCATE+INSERT, mas bases já
+-- criadas precisam do ALTER (o INSERT usa lista explícita de colunas).
+ALTER TABLE tickets.bronze_tickets_raw ADD COLUMN IF NOT EXISTS fix_owner String;
+ALTER TABLE tickets.silver_tickets ADD COLUMN IF NOT EXISTS fix_owner String;
+ALTER TABLE tickets.silver_tickets ADD COLUMN IF NOT EXISTS priority_label_en LowCardinality(String);
 
 CREATE OR REPLACE VIEW tickets.gold_big_numbers AS
 SELECT
@@ -73,11 +82,12 @@ ORDER BY qty DESC;
 CREATE OR REPLACE VIEW tickets.gold_priority_distribution AS
 SELECT
   priority_label,
+  priority_label_en,
   count() AS qty,
   round(count() / sum(count()) OVER (), 4) AS pct
 FROM tickets.silver_tickets
 WHERE priority_label != ''
-GROUP BY priority_label
+GROUP BY priority_label, priority_label_en
 ORDER BY qty DESC;
 
 CREATE OR REPLACE VIEW tickets.gold_priority_levels AS
@@ -92,7 +102,7 @@ ORDER BY priority_level ASC;
 
 CREATE OR REPLACE VIEW tickets.gold_top5_financeiro AS
 SELECT ticket_id, task_name, task_name_en, priority_level, priority_label,
-       status, step_pt, step_en, responsible, due_date
+       priority_label_en, status, step_pt, step_en, responsible, fix_owner, due_date
 FROM tickets.silver_tickets
 WHERE area = 'Financeiro' AND is_open = 1
 ORDER BY (priority_level = ''), priority_level ASC
@@ -100,8 +110,16 @@ LIMIT 5;
 
 CREATE OR REPLACE VIEW tickets.gold_top5_estoque AS
 SELECT ticket_id, task_name, task_name_en, priority_level, priority_label,
-       status, step_pt, step_en, responsible, due_date
+       priority_label_en, status, step_pt, step_en, responsible, fix_owner, due_date
 FROM tickets.silver_tickets
 WHERE area = 'Estoque' AND is_open = 1
 ORDER BY (priority_level = ''), priority_level ASC
 LIMIT 5;
+
+CREATE OR REPLACE VIEW tickets.gold_open_tickets AS
+SELECT ticket_id, task_name, task_name_en, priority_label, priority_label_en,
+       priority_level, status, step_pt, step_en, responsible, fix_owner,
+       provider, due_date, area
+FROM tickets.silver_tickets
+WHERE is_open = 1
+ORDER BY (priority_level = ''), priority_level ASC, ticket_id ASC;

@@ -45,4 +45,24 @@ describe('buildSilverSql', () => {
   it('area_hint da fonte tem precedência sobre as keywords', () => {
     expect(sql).toContain("if(area_hint != '', area_hint, multiIf(");
   });
+
+  it('usa lista explícita de colunas no INSERT (robusto a ALTERs)', () => {
+    expect(sql).toMatch(/INSERT INTO tickets\.silver_tickets\s*\(/);
+    expect(sql).toContain('fix_owner');
+    expect(sql).toContain('priority_label_en');
+  });
+
+  it('regra 6: deriva priority_label_en de priority_label', () => {
+    expect(sql).toContain("priority_label = 'Urgente!', 'Urgent!'");
+    expect(sql).toContain("priority_label = 'Alta', 'High'");
+    expect(sql).toContain("priority_label = 'Normal', 'Normal'");
+    expect(sql).toContain("priority_label = 'Baixa', 'Low'");
+  });
+
+  it('regra 3: office365 + provider SISCORP sobrepõe o step', () => {
+    expect(sql).toContain(
+      "if(source = 'office365' AND provider = 'SISCORP', 'Em atendimento pelo SISCORP',");
+    expect(sql).toContain(
+      "if(source = 'office365' AND provider = 'SISCORP', 'Handled by SISCORP',");
+  });
 });

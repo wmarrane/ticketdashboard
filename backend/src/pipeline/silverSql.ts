@@ -24,6 +24,16 @@ function stepMultiIf(labelIndex: 1 | 2): string {
 const STEP_PT = stepMultiIf(1);
 const STEP_EN = stepMultiIf(2);
 
+// Regra 6: rótulo de prioridade em inglês derivado do rótulo PT.
+const PRIORITY_LABEL_EN = `multiIf(
+  priority_label = 'Urgente!', 'Urgent!',
+  priority_label = 'Alta', 'High',
+  priority_label = 'Normal', 'Normal',
+  priority_label = 'Baixa', 'Low', '')`;
+
+// Regra 3: office365 atendido pelo SISCORP sobrepõe o de-para de status.
+const SISCORP_OVERRIDE = "source = 'office365' AND provider = 'SISCORP'";
+
 const VALID_SOURCES = new Set(['wrike', 'loop', 'office365']);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -40,11 +50,16 @@ export function buildSilverSql(current: { source: string; loadId: string }): str
   }
   return `
 INSERT INTO tickets.silver_tickets
+  (ticket_id, source, status, task_name, task_name_en, due_date, responsible,
+   priority_label, priority_label_en, priority_level, provider, fix_owner,
+   step_pt, step_en, is_open, area, loaded_at)
 SELECT ticket_id, source, status, task_name, task_name_en,
        toDateOrNull(due_date) AS due_date,
-       responsible, priority_label, priority_level, provider,
-       ${STEP_PT} AS step_pt,
-       ${STEP_EN} AS step_en,
+       responsible, priority_label,
+       ${PRIORITY_LABEL_EN} AS priority_label_en,
+       priority_level, provider, fix_owner,
+       if(${SISCORP_OVERRIDE}, 'Em atendimento pelo SISCORP', ${STEP_PT}) AS step_pt,
+       if(${SISCORP_OVERRIDE}, 'Handled by SISCORP', ${STEP_EN}) AS step_en,
        if(status NOT IN ('Completed', 'Cancelled', 'Stopped'), 1, 0) AS is_open,
        if(area_hint != '', area_hint, ${areaRegexSql()}) AS area,
        loaded_at
