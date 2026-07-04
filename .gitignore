@@ -15,3 +15,5 @@ yarn-error.log*
 .env
 .idea
 .DS_Store
+.claude/
+.superpowers/
