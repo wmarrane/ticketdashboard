@@ -1,12 +1,20 @@
 import express, { type Express } from 'express';
 import multer, { MulterError } from 'multer';
 import { parseSpreadsheet, UnknownLayoutError, type ParseResult } from './pipeline/parser.js';
+import { buildWorkbook } from './export/excelExport.js';
+import type { ExportData } from './export/exportData.js';
 
 export interface Deps {
   runLoad: (source: string, fileName: string, parsed: ParseResult)
     => Promise<{ loadId: string; rowsAccepted: number; rowsRejected: number }>;
   queryGold: () => Promise<unknown>;
   listUploads: () => Promise<unknown[]>;
+  fetchExportData: () => Promise<ExportData>;
+}
+
+function exportFileName(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}_${pad(d.getMonth() + 1)}_${pad(d.getDate())}_Cards_Ituran_Contrato_Squad.xlsx`;
 }
 
 const SOURCES = new Set(['wrike', 'loop', 'office365']);
@@ -45,6 +53,16 @@ export function createApp(deps: Deps): Express {
   app.get('/api/uploads', async (_req, res) => {
     try { res.json(await deps.listUploads()); }
     catch (err) { console.error(err); res.status(500).json({ error: 'Erro interno.' }); }
+  });
+
+  app.get('/api/export', async (_req, res) => {
+    try {
+      const data = await deps.fetchExportData();
+      const buffer = await buildWorkbook(data);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${exportFileName(data.generatedAt)}"`);
+      res.send(buffer);
+    } catch (err) { console.error(err); res.status(500).json({ error: 'Erro interno.' }); }
   });
 
   app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

@@ -31,6 +31,7 @@ const fakeDeps = {
     top5Financeiro: [], top5Estoque: [],
   }),
   listUploads: vi.fn().mockResolvedValue([]),
+  fetchExportData: vi.fn().mockResolvedValue({ generatedAt: new Date(), tickets: [] }),
 };
 
 describe('API', () => {
@@ -115,5 +116,25 @@ describe('API', () => {
     const res = await request(app).get('/api/uploads');
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it('GET /api/export baixa xlsx com headers corretos', async () => {
+    const res = await request(app).get('/api/export');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type'])
+      .toContain('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    expect(res.headers['content-disposition'])
+      .toMatch(/^attachment; filename="\d{4}_\d{2}_\d{2}_Cards_Ituran_Contrato_Squad\.xlsx"$/);
+    expect(Number(res.headers['content-length'])).toBeGreaterThan(0);
+  });
+
+  it('GET /api/export responde 500 genérico em falha', async () => {
+    const failing = createApp({
+      ...fakeDeps,
+      fetchExportData: vi.fn().mockRejectedValue(new Error('host interno')),
+    });
+    const res = await request(failing).get('/api/export');
+    expect(res.status).toBe(500);
+    expect(res.body.error).toBe('Erro interno.');
   });
 });
