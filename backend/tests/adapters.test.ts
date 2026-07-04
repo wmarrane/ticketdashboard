@@ -122,6 +122,29 @@ describe('adaptador Loop (Follow up)', () => {
       'In Progress', 'In Progress', 'Pendente Terceiros', 'Waiting Customer', 'Validation', 'Cancelled']);
   });
 
+  it('normaliza vocabulário real do board: a fazer/em espera/encerrado/corrigido/homologação/melhoria', () => {
+    const { rows } = parseSpreadsheet(buildXlsx([LOOP_HEADER,
+      loopRow({ status: 'A fazer' }),
+      loopRow({ status: 'Em espera' }),
+      loopRow({ status: 'Encerrado' }),
+      loopRow({ status: 'Corrigido' }),
+      loopRow({ status: 'Homologação nao ok' }),
+      loopRow({ status: 'Homologação não ok' }),
+      loopRow({ status: 'Melhoria' })]));
+    expect(rows.map((r) => r.status)).toEqual([
+      'Backlog', 'Waiting Customer', 'Completed', 'Completed',
+      'Development Team', 'Development Team', 'Backlog']);
+  });
+
+  it('é case-insensitive e tolera pontuação no fim: MELHORIA, In Progress., Homologação NAO OK', () => {
+    const { rows } = parseSpreadsheet(buildXlsx([LOOP_HEADER,
+      loopRow({ status: 'MELHORIA' }),
+      loopRow({ status: 'In Progress.' }),
+      loopRow({ status: 'Homologação NAO OK' })]));
+    expect(rows.map((r) => r.status)).toEqual([
+      'Backlog', 'In Progress', 'Development Team']);
+  });
+
   it('status não mapeado passa como texto limpo (sem emoji)', () => {
     const { rows } = parseSpreadsheet(buildXlsx([LOOP_HEADER, loopRow({ status: '🔴 Travado' })]));
     expect(rows[0].status).toBe('Travado');

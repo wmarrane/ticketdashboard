@@ -69,22 +69,33 @@ export function syntheticId(prefix: 'loop' | 'stk', title: string): string {
 
 // Vocabulário canônico (Wrike): comparação sem emojis, sem acentos, minúsculas.
 const STATUS_MAP: Record<string, string> = {
+  'a fazer': 'Backlog',
+  'melhoria': 'Backlog',
   'concluido': 'Completed',
+  'encerrado': 'Completed',
+  'corrigido': 'Completed',
   'em andamento': 'In Progress',
   'em analise': 'In Progress',
+  'in progress': 'In Progress',
   'pendente': 'Pendente Terceiros',
   'aguardando': 'Waiting Customer',
+  'em espera': 'Waiting Customer',
+  'homologacao nao ok': 'Development Team',
   'validacao': 'Validation',
   'uat': 'Validation',
   'cancelado': 'Cancelled',
 };
 
 /**
- * Normaliza status de fontes não canônicas: remove prefixo de emojis/símbolos,
- * apara e mapeia para o vocabulário Wrike; não mapeado → texto limpo original.
+ * Normaliza status de fontes não canônicas: remove emojis/símbolos/pontuação
+ * no início e no fim, apara e mapeia para o vocabulário Wrike;
+ * não mapeado → texto limpo original.
  */
 export function normalizeStatus(v: unknown): string {
-  const s = clean(v).replace(/^[^\p{L}\p{N}]+/u, '').trim();
+  const s = clean(v)
+    .replace(/^[^\p{L}\p{N}]+/u, '')
+    .replace(/[^\p{L}\p{N}]+$/u, '')
+    .trim();
   if (!s) return '';
   const key = stripDiacritics(s).toLowerCase();
   return STATUS_MAP[key] ?? s;
