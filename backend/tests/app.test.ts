@@ -32,6 +32,13 @@ const fakeDeps = {
   }),
   listUploads: vi.fn().mockResolvedValue([]),
   fetchExportData: vi.fn().mockResolvedValue({ generatedAt: new Date(), tickets: [] }),
+  fetchOpenTickets: vi.fn().mockResolvedValue([{
+    ticket_id: 'NS-2', task_name: 'Ajuste de estoque', task_name_en: 'Inventory adjustment',
+    priority_label: 'Alta', priority_label_en: 'High', priority_level: 'P1',
+    status: 'Em andamento', step_pt: 'Em atendimento', step_en: 'In progress',
+    responsible: 'Carlos', fix_owner: 'Squad Finance', provider: 'SISCORP',
+    due_date: '2026-08-01', area: 'Estoque',
+  }]),
 };
 
 describe('API', () => {
@@ -126,6 +133,62 @@ describe('API', () => {
     expect(res.headers['content-disposition'])
       .toMatch(/^attachment; filename="\d{4}_\d{2}_\d{2}_Cards_Ituran_Contrato_Squad\.xlsx"$/);
     expect(Number(res.headers['content-length'])).toBeGreaterThan(0);
+  });
+
+  it('GET /api/report/dashboard baixa HTML em PT por padrão', async () => {
+    const res = await request(app).get('/api/report/dashboard');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toContain('text/html');
+    expect(res.headers['content-type']).toContain('charset=utf-8');
+    expect(res.headers['content-disposition'])
+      .toMatch(/^attachment; filename="\d{4}_\d{2}_\d{2}_dashboard_pt\.html"$/);
+    expect(res.text).toContain('Total de Tickets');
+  });
+
+  it('GET /api/report/dashboard?lang=en baixa HTML em EN', async () => {
+    const res = await request(app).get('/api/report/dashboard?lang=en');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-disposition'])
+      .toMatch(/^attachment; filename="\d{4}_\d{2}_\d{2}_dashboard_en\.html"$/);
+    expect(res.text).toContain('Total Tickets');
+  });
+
+  it('GET /api/report/dashboard rejeita lang inválido', async () => {
+    const res = await request(app).get('/api/report/dashboard?lang=fr');
+    expect(res.status).toBe(400);
+  });
+
+  it('GET /api/report/dashboard responde 500 genérico em falha', async () => {
+    const failing = createApp({
+      ...fakeDeps,
+      queryGold: vi.fn().mockRejectedValue(new Error('host interno')),
+    });
+    const res = await request(failing).get('/api/report/dashboard');
+    expect(res.status).toBe(500);
+    expect(res.body.error).toBe('Erro interno.');
+  });
+
+  it('GET /api/report/open-tickets baixa HTML PT com filename tickets_abertos', async () => {
+    const res = await request(app).get('/api/report/open-tickets?lang=pt');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toContain('text/html');
+    expect(res.headers['content-disposition'])
+      .toMatch(/^attachment; filename="\d{4}_\d{2}_\d{2}_tickets_abertos_pt\.html"$/);
+    expect(res.text).toContain('Resp. Correção');
+    expect(res.text).toContain('NS-2');
+  });
+
+  it('GET /api/report/open-tickets?lang=en usa filename open_tickets', async () => {
+    const res = await request(app).get('/api/report/open-tickets?lang=en');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-disposition'])
+      .toMatch(/^attachment; filename="\d{4}_\d{2}_\d{2}_open_tickets_en\.html"$/);
+    expect(res.text).toContain('Fix Owner');
+  });
+
+  it('GET /api/report/open-tickets rejeita lang inválido', async () => {
+    const res = await request(app).get('/api/report/open-tickets?lang=xx');
+    expect(res.status).toBe(400);
   });
 
   it('GET /api/export responde 500 genérico em falha', async () => {

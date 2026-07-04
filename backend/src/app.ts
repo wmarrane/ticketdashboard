@@ -3,6 +3,10 @@ import multer, { MulterError } from 'multer';
 import { parseSpreadsheet, UnknownLayoutError, type ParseResult } from './pipeline/parser.js';
 import { buildWorkbook } from './export/excelExport.js';
 import type { ExportData } from './export/exportData.js';
+import {
+  buildDashboardReport, buildOpenTicketsReport,
+  type DashboardData, type OpenTicketRow, type ReportLang,
+} from './report/htmlReport.js';
 
 export interface Deps {
   runLoad: (source: string, fileName: string, parsed: ParseResult)
@@ -10,11 +14,29 @@ export interface Deps {
   queryGold: () => Promise<unknown>;
   listUploads: () => Promise<unknown[]>;
   fetchExportData: () => Promise<ExportData>;
+  fetchOpenTickets: () => Promise<OpenTicketRow[]>;
 }
 
 function exportFileName(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}_${pad(d.getMonth() + 1)}_${pad(d.getDate())}_Cards_Ituran_Contrato_Squad.xlsx`;
+}
+
+function datePrefix(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}_${pad(d.getMonth() + 1)}_${pad(d.getDate())}`;
+}
+
+function parseLang(raw: unknown): ReportLang | null {
+  if (raw === undefined || raw === 'pt') return 'pt';
+  if (raw === 'en') return 'en';
+  return null;
+}
+
+function sendHtmlReport(res: express.Response, html: string, fileName: string): void {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+  res.send(html);
 }
 
 const SOURCES = new Set(['wrike', 'loop', 'office365']);
@@ -62,6 +84,27 @@ export function createApp(deps: Deps): Express {
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', `attachment; filename="${exportFileName(data.generatedAt)}"`);
       res.send(buffer);
+    } catch (err) { console.error(err); res.status(500).json({ error: 'Erro interno.' }); }
+  });
+
+  app.get('/api/report/dashboard', async (req, res) => {
+    const lang = parseLang(req.query.lang);
+    if (!lang) return res.status(400).json({ error: 'Idioma inválido. Use pt ou en.' });
+    try {
+      const data = await deps.queryGold() as DashboardData;
+      const now = new Date();
+      sendHtmlReport(res, buildDashboardReport(data, lang, now), `${datePrefix(now)}_dashboard_${lang}.html`);
+    } catch (err) { console.error(err); res.status(500).json({ error: 'Erro interno.' }); }
+  });
+
+  app.get('/api/report/open-tickets', async (req, res) => {
+    const lang = parseLang(req.query.lang);
+    if (!lang) return res.status(400).json({ error: 'Idioma inválido. Use pt ou en.' });
+    try {
+      const rows = await deps.fetchOpenTickets();
+      const now = new Date();
+      const base = lang === 'pt' ? 'tickets_abertos' : 'open_tickets';
+      sendHtmlReport(res, buildOpenTicketsReport(rows, lang, now), `${datePrefix(now)}_${base}_${lang}.html`);
     } catch (err) { console.error(err); res.status(500).json({ error: 'Erro interno.' }); }
   });
 
