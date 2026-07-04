@@ -384,9 +384,9 @@ export async function buildWorkbook(data: ExportData): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
   wb.created = data.generatedAt;
   const agg = aggregate(data.tickets);
+  addCardsSheet(wb, data.tickets);
   addDashboardSheet(wb, 'Dashboard', TEXTS_PT, agg, data.generatedAt);
   addDashboardSheet(wb, 'Dashboard (EN)', TEXTS_EN, agg, data.generatedAt);
-  addCardsSheet(wb, data.tickets);
   const buffer = await wb.xlsx.writeBuffer();
   return Buffer.from(buffer as ArrayBuffer);
 }

@@ -70,7 +70,7 @@ describe('buildWorkbook', () => {
 
   it('gera as 3 abas com os nomes esperados', () => {
     expect(wb.worksheets.map((ws) => ws.name))
-      .toEqual(['Dashboard', 'Dashboard (EN)', 'Cards Ituran']);
+      .toEqual(['Cards Ituran', 'Dashboard', 'Dashboard (EN)']);
   });
 
   it('Cards Ituran tem o cabeçalho com as 16 colunas exatas', () => {
