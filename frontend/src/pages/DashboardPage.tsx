@@ -56,8 +56,8 @@ export default function DashboardPage({ lang }: { lang: Lang }) {
           headers={[t(lang, 'level'), t(lang, 'qty'), t(lang, 'pct')]}
           rows={data.priorityLevels.map((r) => [r.priority_level, r.qty, pctFmt(r.pct)])}
         />
-        <DataTable title={t(lang, 'top5Finance')} headers={ticketHeaders} rows={ticketRows(lang, data.top5Financeiro)} />
-        <DataTable title={t(lang, 'top5Inventory')} headers={ticketHeaders} rows={ticketRows(lang, data.top5Estoque)} />
+        <DataTable wide title={t(lang, 'top5Finance')} headers={ticketHeaders} rows={ticketRows(lang, data.top5Financeiro)} />
+        <DataTable wide title={t(lang, 'top5Inventory')} headers={ticketHeaders} rows={ticketRows(lang, data.top5Estoque)} />
       </div>
     </main>
   );

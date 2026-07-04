@@ -2,11 +2,12 @@ interface Props {
   title: string;
   headers: string[];
   rows: (string | number)[][];
+  wide?: boolean;
 }
 
-export default function DataTable({ title, headers, rows }: Props) {
+export default function DataTable({ title, headers, rows, wide }: Props) {
   return (
-    <div className="card">
+    <div className={wide ? 'card card-wide' : 'card'}>
       <h2>{title}</h2>
       <table>
         <thead>
