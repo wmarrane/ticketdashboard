@@ -1,4 +1,4 @@
-import { clean, stripDiacritics, toIsoDate, type SourceAdapter } from './shared.js';
+import { clean, normalizeStatus, stripDiacritics, toIsoDate, type SourceAdapter } from './shared.js';
 
 // Export nativo do Wrike. Cabeçalhos normalizados:
 // '‼️ Priority' → 'priority'; 'Módulo/Processo:' → 'móduloprocesso'.
@@ -27,7 +27,8 @@ export const wrikeExport: SourceAdapter = {
   mapRow: (rec) => ({
     // ID pode chegar como número (4384524386) ou texto float ('4384524386.0').
     ticketId: clean(rec[W.id]).replace(/\.0$/, ''),
-    status: clean(rec[W.status]),
+    // Board real traz variantes ('In Progress.', 'Melhoria') → vocabulário canônico.
+    status: normalizeStatus(rec[W.status]),
     taskName: clean(rec[W.nome]),
     taskNameEn: '',
     dueDate: toIsoDate(rec[W.vencimento]),

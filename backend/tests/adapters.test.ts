@@ -74,6 +74,14 @@ describe('adaptador Wrike export', () => {
     expect(rows[0].ticketId).toBe('4384524386');
   });
 
+  it('normaliza status com pontuação no fim: In Progress. → In Progress; canônico passa intacto', () => {
+    const { rows } = parseSpreadsheet(buildXlsx([WRIKE_HEADER,
+      wrikeRow({ status: 'In Progress.' }),
+      wrikeRow({ status: 'Development Team' })]));
+    expect(rows[0].status).toBe('In Progress');
+    expect(rows[1].status).toBe('Development Team');
+  });
+
   it('area_hint: Módulo/Processo com estoque/wms → Estoque; sem keyword → vazio', () => {
     const { rows } = parseSpreadsheet(buildXlsx([WRIKE_HEADER,
       wrikeRow({ modulo: 'WMS - Armazém' }),
