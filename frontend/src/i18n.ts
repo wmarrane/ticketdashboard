@@ -23,6 +23,8 @@ export const messages: Record<Lang, Record<string, string>> = {
     reason: 'Motivo', row: 'Linha', noData: 'Sem dados — faça um upload.',
     uploadSuccess: 'Carga concluída', uploadError: 'Erro na carga',
     exportExcel: 'Exportar Excel',
+    reportHtml: 'Relatório HTML',
+    openTicketsHtml: 'Tickets Abertos (HTML)',
   },
   en: {
     title: 'Ticket Tracking Dashboard',
@@ -46,6 +48,8 @@ export const messages: Record<Lang, Record<string, string>> = {
     reason: 'Reason', row: 'Row', noData: 'No data — upload a spreadsheet.',
     uploadSuccess: 'Load completed', uploadError: 'Load failed',
     exportExcel: 'Export to Excel',
+    reportHtml: 'HTML Report',
+    openTicketsHtml: 'Open Tickets (HTML)',
   },
 };
 

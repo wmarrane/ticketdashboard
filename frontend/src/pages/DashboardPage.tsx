@@ -38,6 +38,12 @@ export default function DashboardPage({ lang }: { lang: Lang }) {
         <button className="btn" onClick={() => { window.location.href = '/api/export'; }}>
           {t(lang, 'exportExcel')}
         </button>
+        <button className="btn" onClick={() => { window.location.href = '/api/report/dashboard?lang=' + lang; }}>
+          {t(lang, 'reportHtml')}
+        </button>
+        <button className="btn" onClick={() => { window.location.href = '/api/report/open-tickets?lang=' + lang; }}>
+          {t(lang, 'openTicketsHtml')}
+        </button>
       </div>
       <div className="big-numbers">
         <BigNumber value={data.bigNumbers.total_tickets} label={t(lang, 'totalTickets')} />
