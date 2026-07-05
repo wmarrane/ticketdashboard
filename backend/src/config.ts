@@ -3,6 +3,8 @@ import 'dotenv/config';
 export interface AppConfig {
   clickhouse: { url: string; username: string; password: string; database: string };
   port: number;
+  /** URL do LibreTranslate (vazio → fallback do glossário estático). */
+  libretranslateUrl: string;
 }
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): AppConfig {
@@ -14,6 +16,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
       database: env.CLICKHOUSE_DATABASE ?? 'tickets',
     },
     port: Number(env.PORT ?? 3001),
+    libretranslateUrl: env.LIBRETRANSLATE_URL ?? '',
   };
 }
 

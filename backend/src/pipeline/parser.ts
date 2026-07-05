@@ -1,7 +1,6 @@
 import * as XLSX from 'xlsx';
 import { ADAPTERS } from './adapters/index.js';
 import { clean, normalizeHeader, type ParsedRow, type RowRecord } from './adapters/shared.js';
-import { translateTitle } from './glossary.js';
 
 export type { ParsedRow } from './adapters/shared.js';
 
@@ -43,8 +42,7 @@ export function parseSpreadsheet(buffer: Buffer): ParseResult {
     // Regra 2: prioridade default para TODAS as fontes (inclusive canônico).
     if (!row.priorityLabel) row.priorityLabel = 'Normal';
     if (!row.priorityLevel) row.priorityLevel = 'P2';
-    // Regra 7: tradução automática do título quando a fonte não traz o EN.
-    if (!row.taskNameEn) row.taskNameEn = translateTitle(row.taskName);
+    // Regra 7 (tradução do título) acontece no load, em lote (loader.ts).
     rows.push(row);
   }
   return { rows, rejected };

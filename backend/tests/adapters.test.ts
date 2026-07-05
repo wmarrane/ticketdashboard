@@ -285,19 +285,19 @@ describe('regras compartilhadas (pós-processamento do parser)', () => {
     expect(rows[0].priorityLevel).toBe('P1');
   });
 
-  it('regra 7: task_name_en vazio é traduzido via glossário', () => {
+  it('regra 7: task_name_en vazio fica vazio no parse (tradução acontece no load)', () => {
     const { rows } = parseSpreadsheet(buildXlsx([WRIKE_HEADER,
       wrikeRow({ nome: 'Erro de pagamento na fatura' })]));
-    expect(rows[0].taskNameEn).toBe('Error de payment na invoice');
+    expect(rows[0].taskNameEn).toBe('');
   });
 
-  it('regra 7: task_name_en preenchido no canônico não é sobrescrito', () => {
+  it('regra 7: task_name_en preenchido no canônico é preservado', () => {
     const { rows } = parseSpreadsheet(buildXlsx([
       ['ID Netsoft / Oracle', 'Status', 'Nome da Tarefa', 'Nome da Tarefa - ENG'],
       ['1', 'Backlog', 'Erro de pagamento', 'Payment issue'],
       ['2', 'Backlog', 'Erro de pagamento', '']]));
     expect(rows[0].taskNameEn).toBe('Payment issue');
-    expect(rows[1].taskNameEn).toBe('Error de payment');
+    expect(rows[1].taskNameEn).toBe('');
   });
 
   it('canônico: fix_owner fica vazio', () => {

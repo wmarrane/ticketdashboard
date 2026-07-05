@@ -4,8 +4,16 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     env_file: .env
+    environment:
+      LIBRETRANSLATE_URL: http://libretranslate:5000
     expose:
       - "3001"
+    restart: unless-stopped
+
+  libretranslate:
+    image: libretranslate/libretranslate
+    environment:
+      LT_LOAD_ONLY: pt,en
     restart: unless-stopped
 
   frontend:

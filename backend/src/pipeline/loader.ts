@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { getClient } from '../clickhouse.js';
 import type { ParseResult } from './parser.js';
 import { buildSilverSql } from './silverSql.js';
+import { translateTitles } from './translator.js';
 
 export class EmptySpreadsheetError extends Error {
   constructor() {
@@ -12,6 +13,16 @@ export class EmptySpreadsheetError extends Error {
 
 export async function runLoad(source: string, fileName: string, parsed: ParseResult) {
   if (parsed.rows.length === 0) throw new EmptySpreadsheetError();
+
+  // Regra 7: títulos sem EN são traduzidos em lote (LibreTranslate, com
+  // fallback para o glossário) antes de gravar na bronze.
+  const pending = parsed.rows
+    .map((row, index) => ({ row, index }))
+    .filter(({ row }) => !row.taskNameEn);
+  if (pending.length > 0) {
+    const translated = await translateTitles(pending.map(({ row }) => row.taskName));
+    pending.forEach(({ row }, i) => { row.taskNameEn = translated[i]; });
+  }
 
   const client = getClient();
   const loadId = randomUUID();
