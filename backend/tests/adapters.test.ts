@@ -301,13 +301,14 @@ describe('adaptador Oracle (CASOS)', () => {
     expect(rows[0].ticketId).toBe('123456');
   });
 
-  it('prioridade por Gravidade: C2/urgente→Urgente!/P0, C3→Normal/P2, C4→Baixa/P3', () => {
+  it('prioridade por Gravidade: C1→Urgente!/P0, C2→Urgente!/P1, C3→Normal/P2, C4→Baixa/P3', () => {
     const { rows } = parseSpreadsheet(buildXlsx([ORACLE_HEADER,
+      oracleRow({ gravidade: 'C1 - Crítico' }),
       oracleRow({ gravidade: 'C2 - Urgente' }),
       oracleRow({ gravidade: 'C3 - Orientação / Perguntas Não Urgentes' }),
       oracleRow({ gravidade: 'C4 - Melhorias ou Suporte Não Técnico' })]));
     expect(rows.map((r) => [r.priorityLevel, r.priorityLabel])).toEqual([
-      ['P0', 'Urgente!'], ['P2', 'Normal'], ['P3', 'Baixa']]);
+      ['P0', 'Urgente!'], ['P1', 'Urgente!'], ['P2', 'Normal'], ['P3', 'Baixa']]);
   });
 
   it('Gravidade desconhecida cai no default Normal/P2 (pós-processamento)', () => {

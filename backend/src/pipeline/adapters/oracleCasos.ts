@@ -11,15 +11,17 @@ const O = {
   status: 'status',
 };
 
-// Prioridade a partir da Gravidade (C2/C3/C4). Fora dessas faixas, deixa vazio
-// para o pós-processamento do parser aplicar o default (Normal/P2).
+// Prioridade a partir da Gravidade (C1/C2/C3/C4). Fora dessas faixas, deixa
+// vazio para o pós-processamento do parser aplicar o default (Normal/P2).
+// C1 Crítico → Urgente!/P0 · C2 Urgente → Urgente!/P1 · C3 → Normal/P2 · C4 → Baixa/P3.
 function priority(gravidade: string): { level: string; label: string } {
   const g = gravidade.toLowerCase();
-  // Códigos C-x têm precedência: o rótulo do C3 contém a palavra 'Urgentes'
-  // ('Perguntas Não Urgentes'), então checamos os códigos antes do keyword.
+  // Códigos C-x têm precedência sobre keyword: o rótulo do C3 contém a palavra
+  // 'Urgentes' ('Perguntas Não Urgentes'), e C1/C2 têm o mesmo label Urgente!.
+  if (g.includes('c1')) return { level: 'P0', label: 'Urgente!' };
+  if (g.includes('c2')) return { level: 'P1', label: 'Urgente!' };
   if (g.includes('c3')) return { level: 'P2', label: 'Normal' };
   if (g.includes('c4')) return { level: 'P3', label: 'Baixa' };
-  if (g.includes('c2') || g.includes('urgente')) return { level: 'P0', label: 'Urgente!' };
   return { level: '', label: '' };
 }
 
