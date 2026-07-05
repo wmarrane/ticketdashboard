@@ -35,6 +35,8 @@ interface DashboardTexts {
   levelSection: string;
   levelHeader: [string, string, string];
   cardsSection: string;
+  cardsSectionFinance: string;
+  cardsSectionInventory: string;
   cardsHeader: [string, string, string, string, string, string];
   statusName: (s: string) => string;
   total: string;
@@ -61,6 +63,8 @@ const TEXTS_PT: DashboardTexts = {
   levelSection: 'NÍVEL DE PRIORIDADE (P0–P5)',
   levelHeader: ['Nível', 'Qtd', '%'],
   cardsSection: 'CARDS PRIORITÁRIOS (P0/P1) ATIVOS — FOCO IMEDIATO',
+  cardsSectionFinance: 'CARDS PRIORITÁRIOS (P0/P1) ATIVOS — FINANCEIRO',
+  cardsSectionInventory: 'CARDS PRIORITÁRIOS (P0/P1) ATIVOS — ESTOQUE',
   cardsHeader: ['Status Wrike', 'Tarefa', 'Vencimento', 'Responsável Cliente', 'Step', 'Provedor'],
   statusName: (s) => s,
   total: 'Total',
@@ -81,6 +85,8 @@ const TEXTS_EN: DashboardTexts = {
   levelSection: 'PRIORITY LEVEL (P0–P5)',
   levelHeader: ['Level', 'Qty', '%'],
   cardsSection: 'ACTIVE PRIORITY CARDS (P0/P1) — IMMEDIATE FOCUS',
+  cardsSectionFinance: 'ACTIVE PRIORITY CARDS (P0/P1) — FINANCE',
+  cardsSectionInventory: 'ACTIVE PRIORITY CARDS (P0/P1) — INVENTORY',
   cardsHeader: ['Wrike Status', 'Task', 'Due Date', 'Client Owner', 'Step', 'Provider'],
   statusName: (s) => (s === 'Pendente Terceiros' ? 'Pending Third Parties' : s),
   total: 'Total',
@@ -326,24 +332,35 @@ function addDashboardSheet(wb: ExcelJS.Workbook, name: string,
     agg.levelRows.map((r2) => ({ label: r2.level, qty: r2.qty })),
     agg.levelTotal, texts.total);
 
-  // Cards prioritários (I7..)
-  sectionTitle('I7', texts.cardsSection, 'N7');
-  tableHeader(8, ['I', 'J', 'K', 'L', 'M', 'N'], texts.cardsHeader);
-  let cardRow = 9;
-  for (const t of agg.priorityCards) {
-    const values = [
-      texts.statusName(t.status), texts.taskName(t), fmtIsoDdMmYyyy(t.due_date),
-      t.responsible, texts.step(t), t.provider,
-    ];
-    ['I', 'J', 'K', 'L', 'M', 'N'].forEach((col, i) => {
-      const c = ws.getCell(`${col}${cardRow}`);
-      c.value = values[i];
-      c.font = { size: 10 };
-      c.border = thinBorder;
-      c.alignment = { vertical: 'top', wrapText: col === 'J' };
-    });
-    cardRow++;
-  }
+  // Seção de cards (título + cabeçalho + linhas); retorna a última linha usada.
+  const cardsTable = (titleRow: number, title: string, cards: ExportTicket[]): number => {
+    sectionTitle(`I${titleRow}`, title, `N${titleRow}`);
+    tableHeader(titleRow + 1, ['I', 'J', 'K', 'L', 'M', 'N'], texts.cardsHeader);
+    let cardRow = titleRow + 2;
+    for (const t of cards) {
+      const values = [
+        texts.statusName(t.status), texts.taskName(t), fmtIsoDdMmYyyy(t.due_date),
+        t.responsible, texts.step(t), t.provider,
+      ];
+      ['I', 'J', 'K', 'L', 'M', 'N'].forEach((col, i) => {
+        const c = ws.getCell(`${col}${cardRow}`);
+        c.value = values[i];
+        c.font = { size: 10 };
+        c.border = thinBorder;
+        c.alignment = { vertical: 'top', wrapText: col === 'J' };
+      });
+      cardRow++;
+    }
+    return cardRow - 1;
+  };
+
+  // Cards prioritários (I7..), seguidos das seções por área (Financeiro/Estoque)
+  // com 2 linhas em branco entre cada seção.
+  let lastRow = cardsTable(7, texts.cardsSection, agg.priorityCards);
+  lastRow = cardsTable(lastRow + 3, texts.cardsSectionFinance,
+    agg.priorityCards.filter((t) => t.area === 'Financeiro'));
+  cardsTable(lastRow + 3, texts.cardsSectionInventory,
+    agg.priorityCards.filter((t) => t.area === 'Estoque'));
 }
 
 function addCardsSheet(wb: ExcelJS.Workbook, tickets: ExportTicket[]): void {

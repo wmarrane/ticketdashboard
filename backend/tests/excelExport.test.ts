@@ -20,6 +20,7 @@ function ticket(overrides: Partial<ExportTicket>): ExportTicket {
     step_pt: '',
     step_en: '',
     is_open: 1,
+    area: '',
     ...overrides,
   };
 }
@@ -33,7 +34,7 @@ const data: ExportData = {
       due_date: '2026-07-10', responsible: 'ana@ituran.com.br',
       priority_label: 'Urgente!', priority_label_en: 'Urgent!', priority_level: 'P0', provider: 'Oracle',
       step_pt: 'Em análise pelo fornecedor', step_en: 'Under Vendor Analysis',
-      is_open: 1,
+      is_open: 1, area: 'Financeiro',
     }),
     ticket({
       ticket_id: '200', source: 'wrike', status: 'Completed',
@@ -48,7 +49,7 @@ const data: ExportData = {
       due_date: '2026-08-01', responsible: 'bruno@ituran.com.br',
       priority_label: 'Alta', priority_label_en: 'High', priority_level: 'P1', provider: 'Netsoft',
       step_pt: 'Chamado Oracle', step_en: 'Oracle Ticket',
-      is_open: 1,
+      is_open: 1, area: 'Estoque',
     }),
     ticket({ ticket_id: '400', source: 'office365', status: 'Backlog', task_name: 'Tarefa Quatro' }),
   ],
@@ -173,6 +174,28 @@ describe('buildWorkbook', () => {
     // P1 depois
     expect(ws.getCell('I10').value).toBe('Pendente Terceiros');
     expect(ws.getCell('J10').value).toBe('Tarefa Três');
+  });
+
+  it('Dashboard tem seções de cards prioritários por área (Financeiro/Estoque)', () => {
+    const ws = wb.getWorksheet('Dashboard')!;
+    // seção principal termina na linha 10 (2 cards) → 2 linhas em branco → título na 13
+    expect(ws.getCell('I13').value).toBe('CARDS PRIORITÁRIOS (P0/P1) ATIVOS — FINANCEIRO');
+    expect(ws.getCell('I14').value).toBe('Status Wrike');
+    expect(ws.getCell('J15').value).toBe('Tarefa Um'); // área Financeiro
+    expect(ws.getCell('N15').value).toBe('Oracle');
+    // Financeiro termina na 15 → 2 em branco → Estoque na 18
+    expect(ws.getCell('I18').value).toBe('CARDS PRIORITÁRIOS (P0/P1) ATIVOS — ESTOQUE');
+    expect(ws.getCell('I19').value).toBe('Status Wrike');
+    expect(ws.getCell('J20').value).toBe('Tarefa Três'); // área Estoque
+    expect(ws.getCell('M20').value).toBe('Chamado Oracle');
+  });
+
+  it('Dashboard (EN) tem seções de cards por área em inglês', () => {
+    const ws = wb.getWorksheet('Dashboard (EN)')!;
+    expect(ws.getCell('I13').value).toBe('ACTIVE PRIORITY CARDS (P0/P1) — FINANCE');
+    expect(ws.getCell('J15').value).toBe('Task One');
+    expect(ws.getCell('I18').value).toBe('ACTIVE PRIORITY CARDS (P0/P1) — INVENTORY');
+    expect(ws.getCell('J20').value).toBe('Task Three');
   });
 
   it('Dashboard (EN) usa textos em inglês, task_name_en e step_en', () => {
