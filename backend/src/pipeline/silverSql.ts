@@ -74,9 +74,19 @@ FROM (
          if(area_hint != '', area_hint, ${areaRegexSql()}) AS area,
          loaded_at
   FROM (
-    SELECT bronze.*, tr.task_name_en AS cached_en,
+    -- Colunas do bronze listadas explicitamente (em vez de bronze.*) para não
+    -- haver identificador ambíguo com os JOINs de cache/override, que também
+    -- expõem task_name/ticket_id/priority_*.
+    SELECT bronze.ticket_id AS ticket_id, bronze.source AS source,
+           bronze.status AS status, bronze.task_name AS task_name,
+           bronze.task_name_en AS task_name_en, bronze.due_date AS due_date,
+           bronze.responsible AS responsible, bronze.priority_label AS priority_label,
+           bronze.priority_level AS priority_level, bronze.provider AS provider,
+           bronze.fix_owner AS fix_owner, bronze.area_hint AS area_hint,
+           bronze.loaded_at AS loaded_at,
+           tr.task_name_en AS cached_en,
            ovr.priority_label AS ovr_label, ovr.priority_level AS ovr_level,
-           ROW_NUMBER() OVER (PARTITION BY ticket_id ORDER BY loaded_at DESC) AS rn
+           ROW_NUMBER() OVER (PARTITION BY bronze.ticket_id ORDER BY bronze.loaded_at DESC) AS rn
     FROM tickets.bronze_tickets_raw AS bronze
     LEFT JOIN (
       SELECT task_name, argMax(task_name_en, updated_at) AS task_name_en
@@ -88,7 +98,7 @@ FROM (
              argMax(priority_level, updated_at) AS priority_level
       FROM tickets.ticket_overrides GROUP BY ticket_id
     ) AS ovr ON bronze.ticket_id = ovr.ticket_id
-    WHERE (source, load_id) IN (${loadSelection})
+    WHERE (bronze.source, bronze.load_id) IN (${loadSelection})
   )
   WHERE rn = 1
 )`;

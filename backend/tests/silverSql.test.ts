@@ -6,7 +6,9 @@ describe('buildSilverSql', () => {
   const sql = buildSilverSql(current);
 
   it('deduplica por ticket_id pegando a carga mais recente', () => {
-    expect(sql).toContain('ROW_NUMBER() OVER (PARTITION BY ticket_id ORDER BY loaded_at DESC)');
+    // Qualificado com bronze.* porque o JOIN em ticket_overrides também expõe
+    // ticket_id (identificador ambíguo sem a qualificação).
+    expect(sql).toContain('ROW_NUMBER() OVER (PARTITION BY bronze.ticket_id ORDER BY bronze.loaded_at DESC)');
   });
 
   it('usa o último lote success das demais fontes', () => {
