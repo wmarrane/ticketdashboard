@@ -21,6 +21,19 @@ const LOOP_HEADER = ['Comparação', 'Card', 'Tipo de Correção', 'Sistema', 'I
 const ESTOQUE_HEADER = ['CARD´s ', 'Problema Relatado ', 'Prioridade ', 'Time ',
   'Status ', 'Previsão Correção ', 'Owner ', 'Detalhe'];
 
+const ORACLE_HEADER = ['Tipo', 'Área do produto', 'Gravidade', 'Contato do caso',
+  'Número', 'Assunto', 'Status', 'Data de envio', 'Data da última mensagem'];
+
+function oracleRow(over: Partial<Record<'tipo' | 'area' | 'gravidade' | 'contato' | 'numero' | 'assunto' | 'status' | 'envio' | 'ultima', unknown>> = {}): unknown[] {
+  return ['Report a Problem', 'Financeiro', 'C2 - Urgente', 'cliente@ituran.com.br',
+    123456, 'Erro na baixa de fatura', 'In Progress', new Date('2026-07-01'), new Date('2026-07-03')]
+    .map((v, i) => {
+      const keys = ['tipo', 'area', 'gravidade', 'contato', 'numero', 'assunto', 'status', 'envio', 'ultima'];
+      const k = keys[i] as keyof typeof over;
+      return k in over ? over[k] : v;
+    });
+}
+
 function wrikeRow(over: Partial<Record<'nome' | 'status' | 'venc' | 'modulo' | 'priority' | 'prioridade' | 'resp' | 'id', unknown>> = {}): unknown[] {
   return ['IT 013 - Webhook de Invoices', 'Pendente Terceiros', new Date('2026-02-25'),
     '26/02/2026', 'Incidente/Bug', 'Localização - CNAB', 'Maria Vitoria', 'Ituran',
@@ -259,6 +272,68 @@ describe('adaptador Estoque daily', () => {
     const { rows } = parseSpreadsheet(buildXlsx([ESTOQUE_HEADER, estoqueRow({ time: 'SISCORP ' })]));
     expect(rows[0].fixOwner).toBe('SISCORP');
     expect(rows[0].provider).toBe('SISCORP');
+  });
+});
+
+describe('adaptador Oracle (CASOS)', () => {
+  it('detecta o layout por gravidade + número + assunto', () => {
+    const { rows, rejected } = parseSpreadsheet(buildXlsx([ORACLE_HEADER, oracleRow()]));
+    expect(rejected).toHaveLength(0);
+    expect(rows).toHaveLength(1);
+  });
+
+  it('mapeia linha feliz: Número→ticketId, Assunto→taskName, Contato→responsible', () => {
+    const { rows } = parseSpreadsheet(buildXlsx([ORACLE_HEADER, oracleRow()]));
+    expect(rows[0]).toMatchObject({
+      ticketId: '123456',
+      taskName: 'Erro na baixa de fatura',
+      responsible: 'cliente@ituran.com.br',
+      provider: 'Oracle',
+      fixOwner: 'Oracle',
+      taskNameEn: '',
+      dueDate: null,
+      areaHint: '',
+    });
+  });
+
+  it('remove sufixo .0 de Número que chega como texto float', () => {
+    const { rows } = parseSpreadsheet(buildXlsx([ORACLE_HEADER, oracleRow({ numero: '123456.0' })]));
+    expect(rows[0].ticketId).toBe('123456');
+  });
+
+  it('prioridade por Gravidade: C2/urgente→Urgente!/P0, C3→Normal/P2, C4→Baixa/P3', () => {
+    const { rows } = parseSpreadsheet(buildXlsx([ORACLE_HEADER,
+      oracleRow({ gravidade: 'C2 - Urgente' }),
+      oracleRow({ gravidade: 'C3 - Orientação / Perguntas Não Urgentes' }),
+      oracleRow({ gravidade: 'C4 - Melhorias ou Suporte Não Técnico' })]));
+    expect(rows.map((r) => [r.priorityLevel, r.priorityLabel])).toEqual([
+      ['P0', 'Urgente!'], ['P2', 'Normal'], ['P3', 'Baixa']]);
+  });
+
+  it('Gravidade desconhecida cai no default Normal/P2 (pós-processamento)', () => {
+    const { rows } = parseSpreadsheet(buildXlsx([ORACLE_HEADER, oracleRow({ gravidade: 'C9 - Sei lá' })]));
+    expect(rows[0].priorityLabel).toBe('Normal');
+    expect(rows[0].priorityLevel).toBe('P2');
+  });
+
+  it('Tipo Request an Enhancement → status Melhoria (independe do campo Status)', () => {
+    const { rows } = parseSpreadsheet(buildXlsx([ORACLE_HEADER,
+      oracleRow({ tipo: 'Request an Enhancement', status: 'In Progress' })]));
+    expect(rows[0].status).toBe('Melhoria');
+  });
+
+  it('de-para de Status: Awaiting Customer Reply/In Progress/Escalated', () => {
+    const { rows } = parseSpreadsheet(buildXlsx([ORACLE_HEADER,
+      oracleRow({ status: 'Awaiting Customer Reply' }),
+      oracleRow({ status: 'In Progress' }),
+      oracleRow({ status: 'Escalated' })]));
+    expect(rows.map((r) => r.status)).toEqual([
+      'Waiting Customer', 'In Progress', 'Pendente Terceiros']);
+  });
+
+  it('Status desconhecido passa como texto limpo', () => {
+    const { rows } = parseSpreadsheet(buildXlsx([ORACLE_HEADER, oracleRow({ status: 'Reopened' })]));
+    expect(rows[0].status).toBe('Reopened');
   });
 });
 

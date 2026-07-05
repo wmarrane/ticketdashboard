@@ -7,6 +7,7 @@ import {
   buildDashboardReport, buildOpenTicketsReport,
   type DashboardData, type OpenTicketRow, type ReportLang,
 } from './report/htmlReport.js';
+import { InvalidPriorityError } from './routes/tickets.js';
 
 export interface Deps {
   runLoad: (source: string, fileName: string, parsed: ParseResult)
@@ -17,6 +18,8 @@ export interface Deps {
   fetchOpenTickets: () => Promise<OpenTicketRow[]>;
   // Dispara a tradução PT->EN em segundo plano (não aguardada pelo upload).
   translateBacklog?: () => Promise<void>;
+  // Persiste a prioridade editada e reconstrói a silver.
+  updateTicketPriority?: (id: string, label: string, level: string) => Promise<void>;
 }
 
 function exportFileName(d: Date): string {
@@ -41,16 +44,19 @@ function sendHtmlReport(res: express.Response, html: string, fileName: string): 
   res.send(html);
 }
 
-const SOURCES = new Set(['wrike', 'loop', 'office365']);
+const SOURCES = new Set(['wrike', 'loop', 'office365', 'oracle']);
 const EXTENSIONS = /\.(xlsx|csv)$/i;
 
 export function createApp(deps: Deps): Express {
   const app = express();
+  // JSON para rotas que recebem corpo JSON (ex.: edição de prioridade). Não
+  // afeta /api/upload: o multer trata multipart/form-data por content-type.
+  app.use(express.json());
   const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
   app.post('/api/upload', upload.single('file'), async (req, res) => {
     const source = String(req.body?.source ?? '');
-    if (!SOURCES.has(source)) return res.status(400).json({ error: 'Fonte inválida. Use wrike, loop ou office365.' });
+    if (!SOURCES.has(source)) return res.status(400).json({ error: 'Fonte inválida. Use wrike, loop, office365 ou oracle.' });
     if (!req.file) return res.status(400).json({ error: 'Arquivo ausente.' });
     if (!EXTENSIONS.test(req.file.originalname)) return res.status(400).json({ error: 'Extensão não suportada. Use .xlsx ou .csv.' });
     try {
@@ -67,6 +73,22 @@ export function createApp(deps: Deps): Express {
     } catch (err) {
       if (err instanceof UnknownLayoutError) {
         return res.status(400).json({ error: err.message });
+      }
+      console.error(err);
+      res.status(500).json({ error: 'Erro interno.' });
+    }
+  });
+
+  app.put('/api/tickets/:id/priority', async (req, res) => {
+    if (!deps.updateTicketPriority) return res.status(500).json({ error: 'Erro interno.' });
+    const label = String(req.body?.priority_label ?? '');
+    const level = String(req.body?.priority_level ?? '');
+    try {
+      await deps.updateTicketPriority(req.params.id, label, level);
+      res.json({ ok: true });
+    } catch (err) {
+      if (err instanceof InvalidPriorityError || /inválid/i.test(String((err as Error)?.message))) {
+        return res.status(400).json({ error: (err as Error).message });
       }
       console.error(err);
       res.status(500).json({ error: 'Erro interno.' });

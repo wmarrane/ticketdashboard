@@ -191,6 +191,33 @@ describe('API', () => {
     expect(res.status).toBe(400);
   });
 
+  it('PUT /api/tickets/:id/priority chama a dep e responde 200', async () => {
+    const updateTicketPriority = vi.fn().mockResolvedValue(undefined);
+    const withDep = createApp({ ...fakeDeps, updateTicketPriority });
+    const res = await request(withDep).put('/api/tickets/123/priority')
+      .send({ priority_label: 'Alta', priority_level: 'P1' });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true });
+    expect(updateTicketPriority).toHaveBeenCalledWith('123', 'Alta', 'P1');
+  });
+
+  it('PUT /api/tickets/:id/priority responde 400 para valores inválidos', async () => {
+    const updateTicketPriority = vi.fn().mockRejectedValue(new Error('priority_label inválido'));
+    const withDep = createApp({ ...fakeDeps, updateTicketPriority });
+    const res = await request(withDep).put('/api/tickets/123/priority')
+      .send({ priority_label: 'Crítica', priority_level: 'P1' });
+    expect(res.status).toBe(400);
+  });
+
+  it('PUT /api/tickets/:id/priority responde 500 genérico em falha interna', async () => {
+    const updateTicketPriority = vi.fn().mockRejectedValue(new Error('host interno'));
+    const withDep = createApp({ ...fakeDeps, updateTicketPriority });
+    const res = await request(withDep).put('/api/tickets/123/priority')
+      .send({ priority_label: 'Alta', priority_level: 'P1' });
+    expect(res.status).toBe(500);
+    expect(res.body.error).toBe('Erro interno.');
+  });
+
   it('GET /api/export responde 500 genérico em falha', async () => {
     const failing = createApp({
       ...fakeDeps,

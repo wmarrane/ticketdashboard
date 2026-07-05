@@ -72,6 +72,44 @@ describe('buildSilverSql', () => {
     expect(sql).toContain('argMax(task_name_en, updated_at)');
     expect(sql).toContain("if(task_name_en != '', task_name_en, coalesce(cached_en, ''))");
   });
+
+  it('aceita a fonte oracle', () => {
+    expect(() => buildSilverSql({ source: 'oracle', loadId: current.loadId })).not.toThrow();
+  });
+
+  it('novo status Melhoria mapeado para step Melhoria/Improvement', () => {
+    expect(sql).toContain("'Melhoria', 'Melhoria'");
+    expect(sql).toContain("'Melhoria', 'Improvement'");
+  });
+
+  it('faz LEFT JOIN em ticket_overrides deduplicado por argMax', () => {
+    expect(sql).toContain('tickets.ticket_overrides');
+    expect(sql).toContain('argMax(priority_label, updated_at)');
+    expect(sql).toContain('argMax(priority_level, updated_at)');
+    expect(sql).toContain('ovr_label');
+    expect(sql).toContain('ovr_level');
+    expect(sql).toContain('ON bronze.ticket_id = ovr.ticket_id');
+  });
+
+  it('prioridade final usa o override quando presente', () => {
+    expect(sql).toContain("if(ovr_label != '', ovr_label, priority_label)");
+    expect(sql).toContain("if(ovr_level != '', ovr_level, priority_level)");
+  });
+
+  it('priority_label_en deriva do label FINAL (após o override)', () => {
+    // Estrutura: subconsulta interna calcula priority_label sobreposto;
+    // o SELECT externo deriva priority_label_en desse valor já sobreposto.
+    // Ambas as expressões coexistem e a derivação label_en referencia o alias
+    // priority_label (não uma coluna crua da bronze).
+    expect(sql).toContain("if(ovr_label != '', ovr_label, priority_label) AS priority_label");
+    expect(sql).toContain("priority_label = 'Urgente!', 'Urgent!'");
+    // O override é uma subconsulta FROM sobre a qual o SELECT externo aplica o
+    // multiIf: o alias `AS priority_label_en` fica antes do FROM da subconsulta.
+    const labelEnAlias = sql.indexOf('AS priority_label_en');
+    const innerOverride = sql.indexOf("if(ovr_label != '', ovr_label, priority_label) AS priority_label");
+    expect(labelEnAlias).toBeGreaterThan(-1);
+    expect(innerOverride).toBeGreaterThan(labelEnAlias);
+  });
 });
 
 describe('buildSilverRefreshSql', () => {
@@ -85,5 +123,10 @@ describe('buildSilverRefreshSql', () => {
   it('também aplica o cache de traduções', () => {
     expect(sql).toContain('tickets.title_translations');
     expect(sql).toContain("if(task_name_en != '', task_name_en, coalesce(cached_en, ''))");
+  });
+
+  it('também aplica os overrides de prioridade', () => {
+    expect(sql).toContain('tickets.ticket_overrides');
+    expect(sql).toContain("if(ovr_label != '', ovr_label, priority_label)");
   });
 });

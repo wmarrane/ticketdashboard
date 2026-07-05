@@ -143,9 +143,9 @@ describe('buildWorkbook', () => {
     expect(ws.getCell('B10').value).toBe(1);
     expect(ws.getCell('C10').value).toBeCloseTo(0.25, 5);
     expect(ws.getCell('C10').numFmt).toBe('0.0%');
-    // Total na linha 18
-    expect(ws.getCell('A18').value).toBe('Total');
-    expect(ws.getCell('B18').value).toBe(4);
+    // Total após as 10 linhas de status canônicos (Melhoria incluída): linha 19
+    expect(ws.getCell('A19').value).toBe('Total');
+    expect(ws.getCell('B19').value).toBe(4);
   });
 
   it('Dashboard distribuição por prioridade e níveis P0–P5', () => {

@@ -17,7 +17,7 @@ const CARDS_HEADER = [
 
 const CANONICAL_STATUSES = [
   'Backlog', 'In Progress', 'Development Team', 'Pendente Terceiros',
-  'Waiting Customer', 'Validation', 'Completed', 'Stopped', 'Cancelled',
+  'Waiting Customer', 'Validation', 'Melhoria', 'Completed', 'Stopped', 'Cancelled',
 ];
 
 const PRIORITY_LABELS = ['Urgente!', 'Alta', 'Normal', 'Baixa'];

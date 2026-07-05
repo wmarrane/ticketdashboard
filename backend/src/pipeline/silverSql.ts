@@ -11,6 +11,7 @@ const STEPS: Array<[status: string, pt: string, en: string]> = [
   ['Pendente Terceiros', 'Chamado Oracle', 'Oracle Ticket'],
   ['Waiting Customer', 'Aguardando retorno do Ituran', "Waiting for Ituran''s Response"],
   ['Validation', 'UAT', 'UAT'],
+  ['Melhoria', 'Melhoria', 'Improvement'],
   ['Completed', 'Em produção', 'In Production'],
 ];
 
@@ -34,7 +35,7 @@ const PRIORITY_LABEL_EN = `multiIf(
 // Regra 3: office365 atendido pelo SISCORP sobrepõe o de-para de status.
 const SISCORP_OVERRIDE = "source = 'office365' AND provider = 'SISCORP'";
 
-const VALID_SOURCES = new Set(['wrike', 'loop', 'office365']);
+const VALID_SOURCES = new Set(['wrike', 'loop', 'office365', 'oracle']);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Corpo comum do rebuild da silver. `loadSelection` é a subconsulta que define
@@ -51,28 +52,46 @@ INSERT INTO tickets.silver_tickets
   (ticket_id, source, status, task_name, task_name_en, due_date, responsible,
    priority_label, priority_label_en, priority_level, provider, fix_owner,
    step_pt, step_en, is_open, area, loaded_at)
-SELECT ticket_id, source, status, task_name,
-       if(task_name_en != '', task_name_en, coalesce(cached_en, '')) AS task_name_en,
-       toDateOrNull(due_date) AS due_date,
+SELECT ticket_id, source, status, task_name, task_name_en, due_date,
        responsible, priority_label,
        ${PRIORITY_LABEL_EN} AS priority_label_en,
        priority_level, provider, fix_owner,
-       if(${SISCORP_OVERRIDE}, 'Em atendimento pelo SISCORP', ${STEP_PT}) AS step_pt,
-       if(${SISCORP_OVERRIDE}, 'Handled by SISCORP', ${STEP_EN}) AS step_en,
-       if(status NOT IN ('Completed', 'Cancelled', 'Stopped'), 1, 0) AS is_open,
-       if(area_hint != '', area_hint, ${areaRegexSql()}) AS area,
-       loaded_at
+       step_pt, step_en, is_open, area, loaded_at
 FROM (
-  SELECT bronze.*, tr.task_name_en AS cached_en,
-         ROW_NUMBER() OVER (PARTITION BY ticket_id ORDER BY loaded_at DESC) AS rn
-  FROM tickets.bronze_tickets_raw AS bronze
-  LEFT JOIN (
-    SELECT task_name, argMax(task_name_en, updated_at) AS task_name_en
-    FROM tickets.title_translations GROUP BY task_name
-  ) AS tr ON bronze.task_name = tr.task_name
-  WHERE (source, load_id) IN (${loadSelection})
-)
-WHERE rn = 1`;
+  SELECT ticket_id, source, status, task_name,
+         if(task_name_en != '', task_name_en, coalesce(cached_en, '')) AS task_name_en,
+         toDateOrNull(due_date) AS due_date,
+         responsible,
+         -- Override editável (ticket_overrides) tem precedência sobre a fonte.
+         -- Aplicado ANTES da derivação de priority_label_en (regra 6), que roda
+         -- no SELECT externo sobre este priority_label já sobreposto.
+         if(ovr_label != '', ovr_label, priority_label) AS priority_label,
+         if(ovr_level != '', ovr_level, priority_level) AS priority_level,
+         provider, fix_owner,
+         if(${SISCORP_OVERRIDE}, 'Em atendimento pelo SISCORP', ${STEP_PT}) AS step_pt,
+         if(${SISCORP_OVERRIDE}, 'Handled by SISCORP', ${STEP_EN}) AS step_en,
+         if(status NOT IN ('Completed', 'Cancelled', 'Stopped'), 1, 0) AS is_open,
+         if(area_hint != '', area_hint, ${areaRegexSql()}) AS area,
+         loaded_at
+  FROM (
+    SELECT bronze.*, tr.task_name_en AS cached_en,
+           ovr.priority_label AS ovr_label, ovr.priority_level AS ovr_level,
+           ROW_NUMBER() OVER (PARTITION BY ticket_id ORDER BY loaded_at DESC) AS rn
+    FROM tickets.bronze_tickets_raw AS bronze
+    LEFT JOIN (
+      SELECT task_name, argMax(task_name_en, updated_at) AS task_name_en
+      FROM tickets.title_translations GROUP BY task_name
+    ) AS tr ON bronze.task_name = tr.task_name
+    LEFT JOIN (
+      SELECT ticket_id,
+             argMax(priority_label, updated_at) AS priority_label,
+             argMax(priority_level, updated_at) AS priority_level
+      FROM tickets.ticket_overrides GROUP BY ticket_id
+    ) AS ovr ON bronze.ticket_id = ovr.ticket_id
+    WHERE (source, load_id) IN (${loadSelection})
+  )
+  WHERE rn = 1
+)`;
 }
 
 // Reconstrói a silver a partir da última carga 'success' de cada fonte,

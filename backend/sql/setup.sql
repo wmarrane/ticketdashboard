@@ -71,6 +71,17 @@ CREATE TABLE IF NOT EXISTS tickets.title_translations (
   updated_at DateTime
 ) ENGINE = ReplacingMergeTree(updated_at) ORDER BY task_name;
 
+-- Prioridade editável pelo usuário (edição inline no dashboard). O rebuild da
+-- silver faz LEFT JOIN por ticket_id e sobrepõe a prioridade da fonte, então a
+-- edição sobrevive a reprocessamentos e a novas cargas. A bronze permanece
+-- imutável. ReplacingMergeTree(updated_at): a última edição de cada ticket vence.
+CREATE TABLE IF NOT EXISTS tickets.ticket_overrides (
+  ticket_id String,
+  priority_label String,
+  priority_level String,
+  updated_at DateTime
+) ENGINE = ReplacingMergeTree(updated_at) ORDER BY ticket_id;
+
 CREATE OR REPLACE VIEW tickets.gold_big_numbers AS
 SELECT
   count() AS total_tickets,
