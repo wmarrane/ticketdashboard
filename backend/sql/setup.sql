@@ -60,6 +60,17 @@ ALTER TABLE tickets.bronze_tickets_raw ADD COLUMN IF NOT EXISTS fix_owner String
 ALTER TABLE tickets.silver_tickets ADD COLUMN IF NOT EXISTS fix_owner String;
 ALTER TABLE tickets.silver_tickets ADD COLUMN IF NOT EXISTS priority_label_en LowCardinality(String);
 
+-- Cache persistente de traduções de título (PT->EN). A tradução assíncrona
+-- (LibreTranslate, em segundo plano) grava aqui; o rebuild da silver faz LEFT
+-- JOIN por task_name. Como a bronze é imutável e a silver é reconstruída a
+-- cada carga, o cache é o que faz a tradução sobreviver aos reprocessamentos.
+-- ReplacingMergeTree(updated_at): a última tradução de cada task_name vence.
+CREATE TABLE IF NOT EXISTS tickets.title_translations (
+  task_name String,
+  task_name_en String,
+  updated_at DateTime
+) ENGINE = ReplacingMergeTree(updated_at) ORDER BY task_name;
+
 CREATE OR REPLACE VIEW tickets.gold_big_numbers AS
 SELECT
   count() AS total_tickets,

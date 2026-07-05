@@ -15,6 +15,8 @@ export interface Deps {
   listUploads: () => Promise<unknown[]>;
   fetchExportData: () => Promise<ExportData>;
   fetchOpenTickets: () => Promise<OpenTicketRow[]>;
+  // Dispara a tradução PT->EN em segundo plano (não aguardada pelo upload).
+  translateBacklog?: () => Promise<void>;
 }
 
 function exportFileName(d: Date): string {
@@ -57,6 +59,10 @@ export function createApp(deps: Deps): Express {
         return res.status(400).json({ error: 'Planilha sem linhas válidas.', rejected: parsed.rejected });
       }
       const result = await deps.runLoad(source, req.file.originalname, parsed);
+      // Tradução PT->EN em segundo plano (regra 7): não bloqueia a resposta.
+      if (deps.translateBacklog) {
+        void deps.translateBacklog().catch((e) => console.error('translationWorker:', e));
+      }
       res.json({ ...result, rejected: parsed.rejected });
     } catch (err) {
       if (err instanceof UnknownLayoutError) {

@@ -37,6 +37,44 @@ const SISCORP_OVERRIDE = "source = 'office365' AND provider = 'SISCORP'";
 const VALID_SOURCES = new Set(['wrike', 'loop', 'office365']);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// Corpo comum do rebuild da silver. `loadSelection` é a subconsulta que define
+// quais pares (source, load_id) da bronze entram — difere entre a carga
+// corrente (que ainda não tem 'success' no load_history) e o refresh de fundo.
+//
+// task_name_en: usa o valor da fonte quando presente; senão, a tradução em
+// cache (title_translations, preenchida em segundo plano pelo worker). Assim a
+// tradução assíncrona sobrevive aos reprocessamentos, já que a bronze é
+// imutável e a silver é sempre reconstruída.
+function buildSilverSelect(loadSelection: string): string {
+  return `
+INSERT INTO tickets.silver_tickets
+  (ticket_id, source, status, task_name, task_name_en, due_date, responsible,
+   priority_label, priority_label_en, priority_level, provider, fix_owner,
+   step_pt, step_en, is_open, area, loaded_at)
+SELECT ticket_id, source, status, task_name,
+       if(task_name_en != '', task_name_en, coalesce(cached_en, '')) AS task_name_en,
+       toDateOrNull(due_date) AS due_date,
+       responsible, priority_label,
+       ${PRIORITY_LABEL_EN} AS priority_label_en,
+       priority_level, provider, fix_owner,
+       if(${SISCORP_OVERRIDE}, 'Em atendimento pelo SISCORP', ${STEP_PT}) AS step_pt,
+       if(${SISCORP_OVERRIDE}, 'Handled by SISCORP', ${STEP_EN}) AS step_en,
+       if(status NOT IN ('Completed', 'Cancelled', 'Stopped'), 1, 0) AS is_open,
+       if(area_hint != '', area_hint, ${areaRegexSql()}) AS area,
+       loaded_at
+FROM (
+  SELECT bronze.*, tr.task_name_en AS cached_en,
+         ROW_NUMBER() OVER (PARTITION BY ticket_id ORDER BY loaded_at DESC) AS rn
+  FROM tickets.bronze_tickets_raw AS bronze
+  LEFT JOIN (
+    SELECT task_name, argMax(task_name_en, updated_at) AS task_name_en
+    FROM tickets.title_translations GROUP BY task_name
+  ) AS tr ON bronze.task_name = tr.task_name
+  WHERE (source, load_id) IN (${loadSelection})
+)
+WHERE rn = 1`;
+}
+
 // Reconstrói a silver a partir da última carga 'success' de cada fonte,
 // substituindo a carga corrente (ainda sem registro no load_history) pelo
 // par (source, load_id) recebido — o 'success' só é gravado depois que a
@@ -48,30 +86,20 @@ export function buildSilverSql(current: { source: string; loadId: string }): str
   if (!UUID_RE.test(current.loadId)) {
     throw new Error(`load_id inválido para rebuild da silver: ${current.loadId}`);
   }
-  return `
-INSERT INTO tickets.silver_tickets
-  (ticket_id, source, status, task_name, task_name_en, due_date, responsible,
-   priority_label, priority_label_en, priority_level, provider, fix_owner,
-   step_pt, step_en, is_open, area, loaded_at)
-SELECT ticket_id, source, status, task_name, task_name_en,
-       toDateOrNull(due_date) AS due_date,
-       responsible, priority_label,
-       ${PRIORITY_LABEL_EN} AS priority_label_en,
-       priority_level, provider, fix_owner,
-       if(${SISCORP_OVERRIDE}, 'Em atendimento pelo SISCORP', ${STEP_PT}) AS step_pt,
-       if(${SISCORP_OVERRIDE}, 'Handled by SISCORP', ${STEP_EN}) AS step_en,
-       if(status NOT IN ('Completed', 'Cancelled', 'Stopped'), 1, 0) AS is_open,
-       if(area_hint != '', area_hint, ${areaRegexSql()}) AS area,
-       loaded_at
-FROM (
-  SELECT *, ROW_NUMBER() OVER (PARTITION BY ticket_id ORDER BY loaded_at DESC) AS rn
-  FROM tickets.bronze_tickets_raw
-  WHERE (source, load_id) IN (
+  return buildSilverSelect(`
     SELECT source, argMax(load_id, loaded_at) FROM tickets.load_history
     WHERE status = 'success' AND source != '${current.source}' GROUP BY source
     UNION ALL
     SELECT '${current.source}', '${current.loadId}'
-  )
-)
-WHERE rn = 1`;
+  `);
+}
+
+// Refresh de fundo: reconstrói a silver usando apenas as últimas cargas
+// 'success' já registradas no load_history. Usado pelo worker de tradução
+// depois de gravar novas entradas no cache title_translations.
+export function buildSilverRefreshSql(): string {
+  return buildSilverSelect(`
+    SELECT source, argMax(load_id, loaded_at) FROM tickets.load_history
+    WHERE status = 'success' GROUP BY source
+  `);
 }

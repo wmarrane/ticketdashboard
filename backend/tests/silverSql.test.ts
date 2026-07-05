@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSilverSql } from '../src/pipeline/silverSql';
+import { buildSilverSql, buildSilverRefreshSql } from '../src/pipeline/silverSql';
 
 describe('buildSilverSql', () => {
   const current = { source: 'office365', loadId: '3f2504e0-4f89-41d3-9a0c-0305e82c3301' };
@@ -64,5 +64,26 @@ describe('buildSilverSql', () => {
       "if(source = 'office365' AND provider = 'SISCORP', 'Em atendimento pelo SISCORP',");
     expect(sql).toContain(
       "if(source = 'office365' AND provider = 'SISCORP', 'Handled by SISCORP',");
+  });
+
+  it('regra 7: task_name_en usa a fonte ou o cache de traduções', () => {
+    expect(sql).toContain('LEFT JOIN');
+    expect(sql).toContain('tickets.title_translations');
+    expect(sql).toContain('argMax(task_name_en, updated_at)');
+    expect(sql).toContain("if(task_name_en != '', task_name_en, coalesce(cached_en, ''))");
+  });
+});
+
+describe('buildSilverRefreshSql', () => {
+  const sql = buildSilverRefreshSql();
+
+  it('reconstrói só a partir das cargas success, sem lote corrente (sem UNION ALL)', () => {
+    expect(sql).toContain("status = 'success' GROUP BY source");
+    expect(sql).not.toContain('UNION ALL');
+  });
+
+  it('também aplica o cache de traduções', () => {
+    expect(sql).toContain('tickets.title_translations');
+    expect(sql).toContain("if(task_name_en != '', task_name_en, coalesce(cached_en, ''))");
   });
 });
