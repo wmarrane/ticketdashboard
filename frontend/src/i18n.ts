@@ -25,6 +25,10 @@ export const messages: Record<Lang, Record<string, string>> = {
     exportExcel: 'Exportar Excel',
     reportHtml: 'Relatório HTML',
     openTicketsHtml: 'Tickets Abertos (HTML)',
+    fixOwner: 'Resp. Correção',
+    edit: 'Editar',
+    save: 'Salvar',
+    cancel: 'Cancelar',
   },
   en: {
     title: 'Ticket Tracking Dashboard',
@@ -50,6 +54,10 @@ export const messages: Record<Lang, Record<string, string>> = {
     exportExcel: 'Export to Excel',
     reportHtml: 'HTML Report',
     openTicketsHtml: 'Open Tickets (HTML)',
+    fixOwner: 'Fix Owner',
+    edit: 'Edit',
+    save: 'Save',
+    cancel: 'Cancel',
   },
 };
 

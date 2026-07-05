@@ -36,3 +36,11 @@ export function uploadFile(source: string, file: File): Promise<UploadResult> {
   form.append('file', file);
   return fetch('/api/upload', { method: 'POST', body: form }).then((r) => check<UploadResult>(r));
 }
+
+export function updateTicketPriority(id: string, priority_label: string, priority_level: string): Promise<{ ok: boolean }> {
+  return fetch(`/api/tickets/${encodeURIComponent(id)}/priority`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ priority_label, priority_level }),
+  }).then((r) => check<{ ok: boolean }>(r));
+}

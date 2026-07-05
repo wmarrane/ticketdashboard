@@ -41,6 +41,7 @@ export default function UploadPage({ lang }: { lang: Lang }) {
             <option value="wrike">Wrike</option>
             <option value="loop">Loop</option>
             <option value="office365">Office 365</option>
+            <option value="oracle">Oracle</option>
           </select>
         </label>
         <label>
