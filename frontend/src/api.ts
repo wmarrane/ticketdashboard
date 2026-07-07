@@ -8,6 +8,12 @@ export interface TicketRow {
   status: string; step_pt: string; step_en: string; responsible: string;
   fix_owner: string; due_date: string | null;
 }
+export interface OpenTicket {
+  ticket_id: string; task_name: string; task_name_en: string;
+  priority_label: string; priority_label_en: string; priority_level: string;
+  status: string; step_pt: string; step_en: string; responsible: string;
+  fix_owner: string; provider: string; due_date: string | null; area: string;
+}
 export interface DashboardData {
   bigNumbers: BigNumbers; statusDistribution: StatusRow[];
   priorityDistribution: PriorityRow[]; priorityLevels: LevelRow[];
@@ -29,6 +35,7 @@ async function check<T>(res: Response): Promise<T> {
 
 export const fetchDashboard = () => fetch('/api/dashboard').then((r) => check<DashboardData>(r));
 export const fetchUploads = () => fetch('/api/uploads').then((r) => check<UploadHistoryRow[]>(r));
+export const fetchOpenTickets = () => fetch('/api/open-tickets').then((r) => check<OpenTicket[]>(r));
 
 export function uploadFile(source: string, file: File): Promise<UploadResult> {
   const form = new FormData();
@@ -37,10 +44,10 @@ export function uploadFile(source: string, file: File): Promise<UploadResult> {
   return fetch('/api/upload', { method: 'POST', body: form }).then((r) => check<UploadResult>(r));
 }
 
-export function updateTicketPriority(id: string, priority_label: string, priority_level: string): Promise<{ ok: boolean }> {
-  return fetch(`/api/tickets/${encodeURIComponent(id)}/priority`, {
+export function updateTicket(id: string, priority_label: string, priority_level: string, status: string): Promise<{ ok: boolean }> {
+  return fetch(`/api/tickets/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ priority_label, priority_level }),
+    body: JSON.stringify({ priority_label, priority_level, status }),
   }).then((r) => check<{ ok: boolean }>(r));
 }

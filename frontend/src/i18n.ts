@@ -29,6 +29,12 @@ export const messages: Record<Lang, Record<string, string>> = {
     edit: 'Editar',
     save: 'Salvar',
     cancel: 'Cancelar',
+    maintenance: 'Manutenção',
+    filters: 'Filtros',
+    provider: 'Provedor',
+    area: 'Área',
+    openTotal: 'Total Abertos',
+    urgents: 'Urgentes',
   },
   en: {
     title: 'Ticket Tracking Dashboard',
@@ -58,6 +64,12 @@ export const messages: Record<Lang, Record<string, string>> = {
     edit: 'Edit',
     save: 'Save',
     cancel: 'Cancel',
+    maintenance: 'Maintenance',
+    filters: 'Filters',
+    provider: 'Provider',
+    area: 'Area',
+    openTotal: 'Open Total',
+    urgents: 'Urgent',
   },
 };
 

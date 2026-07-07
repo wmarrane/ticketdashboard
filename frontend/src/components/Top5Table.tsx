@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { updateTicketPriority, type TicketRow } from '../api';
+import { updateTicket, type TicketRow } from '../api';
 import { t, type Lang } from '../i18n';
 
 const PRIORITY_LABELS = ['Urgente!', 'Alta', 'Normal', 'Baixa'];
@@ -9,6 +9,7 @@ interface EditState {
   ticketId: string;
   label: string;
   level: string;
+  currentStatus: string;
   saving: boolean;
   error: string;
 }
@@ -28,6 +29,7 @@ export default function Top5Table({ lang, title, rows, onSaved }: Props) {
       ticketId: row.ticket_id,
       label: row.priority_label,
       level: row.priority_level,
+      currentStatus: row.status,
       saving: false,
       error: '',
     });
@@ -41,7 +43,7 @@ export default function Top5Table({ lang, title, rows, onSaved }: Props) {
     if (!editState) return;
     setEditState((s) => s ? { ...s, saving: true, error: '' } : s);
     try {
-      await updateTicketPriority(editState.ticketId, editState.label, editState.level);
+      await updateTicket(editState.ticketId, editState.label, editState.level, editState.currentStatus);
       setEditState(null);
       onSaved();
     } catch (err) {

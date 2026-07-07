@@ -22,3 +22,9 @@ th { background: #eef2f6; }
 .error { color: #b00020; padding: 16px; }
 form.upload { background: #fff; border-radius: 8px; padding: 16px; max-width: 480px; display: grid; gap: 12px; }
 .result-ok { color: #0a7d33; }
+.indicators-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.ind-card { background: #fff; border-radius: 6px; padding: 6px 12px; font-size: 0.82rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.ind-card.urgent { background: #fff3cd; }
+.filters { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; padding: 12px; margin-bottom: 0; }
+.filter-group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 0.85rem; }
+.filter-group label { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
