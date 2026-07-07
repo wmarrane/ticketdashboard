@@ -17,7 +17,7 @@ export interface OpenTicket {
 export interface DashboardData {
   bigNumbers: BigNumbers; statusDistribution: StatusRow[];
   priorityDistribution: PriorityRow[]; priorityLevels: LevelRow[];
-  top5Financeiro: TicketRow[]; top5Estoque: TicketRow[];
+  top5Financeiro: TicketRow[]; top5Estoque: TicketRow[]; top5WaitingCustomer: TicketRow[];
 }
 export interface UploadResult {
   loadId: string; rowsAccepted: number; rowsRejected: number;

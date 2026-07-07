@@ -62,6 +62,7 @@ export default function DashboardPage({ lang }: { lang: Lang }) {
         />
         <Top5Table lang={lang} title={t(lang, 'top5Finance')} rows={data.top5Financeiro} onSaved={reload} />
         <Top5Table lang={lang} title={t(lang, 'top5Inventory')} rows={data.top5Estoque} onSaved={reload} />
+        <Top5Table lang={lang} title={t(lang, 'top5Waiting')} rows={data.top5WaitingCustomer} onSaved={reload} />
       </div>
     </main>
   );
