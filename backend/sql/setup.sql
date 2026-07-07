@@ -79,8 +79,13 @@ CREATE TABLE IF NOT EXISTS tickets.ticket_overrides (
   ticket_id String,
   priority_label String,
   priority_level String,
+  status String,
   updated_at DateTime
 ) ENGINE = ReplacingMergeTree(updated_at) ORDER BY ticket_id;
+
+-- Migração idempotente: override de status (página de manutenção). Cada linha
+-- carrega o estado completo (status + prioridade); a última por updated_at vence.
+ALTER TABLE tickets.ticket_overrides ADD COLUMN IF NOT EXISTS status String;
 
 CREATE OR REPLACE VIEW tickets.gold_big_numbers AS
 SELECT

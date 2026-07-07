@@ -61,13 +61,7 @@ FROM (
   SELECT ticket_id, source, status, task_name,
          if(task_name_en != '', task_name_en, coalesce(cached_en, '')) AS task_name_en,
          toDateOrNull(due_date) AS due_date,
-         responsible,
-         -- Override editável (ticket_overrides) tem precedência sobre a fonte.
-         -- Aplicado ANTES da derivação de priority_label_en (regra 6), que roda
-         -- no SELECT externo sobre este priority_label já sobreposto.
-         if(ovr_label != '', ovr_label, priority_label) AS priority_label,
-         if(ovr_level != '', ovr_level, priority_level) AS priority_level,
-         provider, fix_owner,
+         responsible, priority_label, priority_level, provider, fix_owner,
          if(${SISCORP_OVERRIDE}, 'Em atendimento pelo SISCORP', ${STEP_PT}) AS step_pt,
          if(${SISCORP_OVERRIDE}, 'Handled by SISCORP', ${STEP_EN}) AS step_en,
          if(status NOT IN ('Completed', 'Cancelled', 'Stopped'), 1, 0) AS is_open,
@@ -76,16 +70,21 @@ FROM (
   FROM (
     -- Colunas do bronze listadas explicitamente (em vez de bronze.*) para não
     -- haver identificador ambíguo com os JOINs de cache/override, que também
-    -- expõem task_name/ticket_id/priority_*.
+    -- expõem task_name/ticket_id/status/priority_*.
+    -- Override editável (ticket_overrides) tem precedência sobre a fonte e é
+    -- aplicado AQUI, no nível mais interno, para que status/priority já
+    -- sobrepostos alimentem step_pt/en, is_open e priority_label_en acima.
     SELECT bronze.ticket_id AS ticket_id, bronze.source AS source,
-           bronze.status AS status, bronze.task_name AS task_name,
+           if(ovr.status != '', ovr.status, bronze.status) AS status,
+           bronze.task_name AS task_name,
            bronze.task_name_en AS task_name_en, bronze.due_date AS due_date,
-           bronze.responsible AS responsible, bronze.priority_label AS priority_label,
-           bronze.priority_level AS priority_level, bronze.provider AS provider,
+           bronze.responsible AS responsible,
+           if(ovr.priority_label != '', ovr.priority_label, bronze.priority_label) AS priority_label,
+           if(ovr.priority_level != '', ovr.priority_level, bronze.priority_level) AS priority_level,
+           bronze.provider AS provider,
            bronze.fix_owner AS fix_owner, bronze.area_hint AS area_hint,
            bronze.loaded_at AS loaded_at,
            tr.task_name_en AS cached_en,
-           ovr.priority_label AS ovr_label, ovr.priority_level AS ovr_level,
            ROW_NUMBER() OVER (PARTITION BY bronze.ticket_id ORDER BY bronze.loaded_at DESC) AS rn
     FROM tickets.bronze_tickets_raw AS bronze
     LEFT JOIN (
@@ -95,7 +94,8 @@ FROM (
     LEFT JOIN (
       SELECT ticket_id,
              argMax(priority_label, updated_at) AS priority_label,
-             argMax(priority_level, updated_at) AS priority_level
+             argMax(priority_level, updated_at) AS priority_level,
+             argMax(status, updated_at) AS status
       FROM tickets.ticket_overrides GROUP BY ticket_id
     ) AS ovr ON bronze.ticket_id = ovr.ticket_id
     WHERE (bronze.source, bronze.load_id) IN (${loadSelection})

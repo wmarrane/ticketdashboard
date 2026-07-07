@@ -3,6 +3,10 @@ import { buildSilverRefreshSql } from '../pipeline/silverSql.js';
 
 const VALID_LABELS = new Set(['Urgente!', 'Alta', 'Normal', 'Baixa']);
 const VALID_LEVELS = new Set(['P0', 'P1', 'P2', 'P3', 'P4', 'P5']);
+const VALID_STATUSES = new Set([
+  'Backlog', 'In Progress', 'Development Team', 'Pendente Terceiros',
+  'Waiting Customer', 'Validation', 'Melhoria', 'Completed', 'Stopped', 'Cancelled',
+]);
 
 /** Erro de validação de entrada — a rota traduz para HTTP 400. */
 export class InvalidPriorityError extends Error {
@@ -17,15 +21,17 @@ function nowClickhouse(): string {
 }
 
 /**
- * Persiste a prioridade editada de um ticket em `ticket_overrides` e reconstrói
- * a silver para refletir o override (LEFT JOIN por ticket_id no rebuild). Como a
- * bronze é imutável e a silver é sempre reconstruída, a edição sobrevive a
- * reprocessamentos e a novos uploads.
+ * Persiste o override completo de um ticket (status + prioridade) em
+ * `ticket_overrides` e reconstrói a silver. Cada edição grava o estado completo
+ * — a página de manutenção edita status+prioridade juntos, e a edição do Top 5
+ * reenvia o status atual inalterado — evitando override parcial. Como a bronze
+ * é imutável e a silver é reconstruída, a edição sobrevive a reprocessamentos.
  */
-export async function updateTicketPriority(
+export async function updateTicket(
   ticketId: string,
   priorityLabel: string,
   priorityLevel: string,
+  status: string,
 ): Promise<void> {
   if (!ticketId) throw new InvalidPriorityError('ticket_id ausente');
   if (!VALID_LABELS.has(priorityLabel)) {
@@ -33,6 +39,9 @@ export async function updateTicketPriority(
   }
   if (!VALID_LEVELS.has(priorityLevel)) {
     throw new InvalidPriorityError(`priority_level inválido: ${priorityLevel}`);
+  }
+  if (!VALID_STATUSES.has(status)) {
+    throw new InvalidPriorityError(`status inválido: ${status}`);
   }
 
   const client = getClient();
@@ -43,6 +52,7 @@ export async function updateTicketPriority(
       ticket_id: ticketId,
       priority_label: priorityLabel,
       priority_level: priorityLevel,
+      status,
       updated_at: nowClickhouse(),
     }],
   });

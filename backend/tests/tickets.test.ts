@@ -7,38 +7,44 @@ const fakeClient = {
 };
 vi.mock('../src/clickhouse', () => ({ getClient: () => fakeClient }));
 
-const { updateTicketPriority } = await import('../src/routes/tickets');
+const { updateTicket } = await import('../src/routes/tickets');
 
-describe('updateTicketPriority', () => {
+describe('updateTicket', () => {
   beforeEach(() => {
     fakeClient.insert.mockClear();
     fakeClient.command.mockClear();
   });
 
   it('rejeita label inválido sem tocar o banco', async () => {
-    await expect(updateTicketPriority('123', 'Crítica', 'P1')).rejects.toThrow(/label/i);
+    await expect(updateTicket('123', 'Crítica', 'P1', 'Backlog')).rejects.toThrow(/label/i);
     expect(fakeClient.insert).not.toHaveBeenCalled();
     expect(fakeClient.command).not.toHaveBeenCalled();
   });
 
   it('rejeita level inválido sem tocar o banco', async () => {
-    await expect(updateTicketPriority('123', 'Alta', 'P9')).rejects.toThrow(/level/i);
+    await expect(updateTicket('123', 'Alta', 'P9', 'Backlog')).rejects.toThrow(/level/i);
+    expect(fakeClient.insert).not.toHaveBeenCalled();
+    expect(fakeClient.command).not.toHaveBeenCalled();
+  });
+
+  it('rejeita status inválido sem tocar o banco', async () => {
+    await expect(updateTicket('123', 'Alta', 'P1', 'Inexistente')).rejects.toThrow(/status/i);
     expect(fakeClient.insert).not.toHaveBeenCalled();
     expect(fakeClient.command).not.toHaveBeenCalled();
   });
 
   it('rejeita ticket_id vazio', async () => {
-    await expect(updateTicketPriority('', 'Alta', 'P1')).rejects.toThrow();
+    await expect(updateTicket('', 'Alta', 'P1', 'Backlog')).rejects.toThrow();
     expect(fakeClient.insert).not.toHaveBeenCalled();
   });
 
-  it('com entrada válida insere override e reconstrói a silver (TRUNCATE + refresh)', async () => {
-    await updateTicketPriority('123456', 'Urgente!', 'P0');
+  it('com entrada válida insere override completo e reconstrói a silver', async () => {
+    await updateTicket('123456', 'Urgente!', 'P0', 'Completed');
 
     const insert = fakeClient.insert.mock.calls[0][0];
     expect(insert.table).toBe('tickets.ticket_overrides');
     expect(insert.values[0]).toMatchObject({
-      ticket_id: '123456', priority_label: 'Urgente!', priority_level: 'P0',
+      ticket_id: '123456', priority_label: 'Urgente!', priority_level: 'P0', status: 'Completed',
     });
     expect(insert.values[0].updated_at).toBeTruthy();
 
@@ -49,9 +55,9 @@ describe('updateTicketPriority', () => {
     expect(fakeClient.command.mock.calls[1][0].query).toContain('INSERT INTO tickets.silver_tickets');
   });
 
-  it('aceita todos os levels P0..P5', async () => {
+  it('aceita todos os levels P0..P5 e o status Melhoria', async () => {
     for (const lvl of ['P0', 'P1', 'P2', 'P3', 'P4', 'P5']) {
-      await expect(updateTicketPriority('1', 'Normal', lvl)).resolves.toBeUndefined();
+      await expect(updateTicket('1', 'Normal', lvl, 'Melhoria')).resolves.toBeUndefined();
     }
   });
 });

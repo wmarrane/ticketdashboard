@@ -18,8 +18,8 @@ export interface Deps {
   fetchOpenTickets: () => Promise<OpenTicketRow[]>;
   // Dispara a tradução PT->EN em segundo plano (não aguardada pelo upload).
   translateBacklog?: () => Promise<void>;
-  // Persiste a prioridade editada e reconstrói a silver.
-  updateTicketPriority?: (id: string, label: string, level: string) => Promise<void>;
+  // Persiste status + prioridade editados e reconstrói a silver.
+  updateTicket?: (id: string, label: string, level: string, status: string) => Promise<void>;
 }
 
 function exportFileName(d: Date): string {
@@ -79,12 +79,13 @@ export function createApp(deps: Deps): Express {
     }
   });
 
-  app.put('/api/tickets/:id/priority', async (req, res) => {
-    if (!deps.updateTicketPriority) return res.status(500).json({ error: 'Erro interno.' });
+  app.put('/api/tickets/:id', async (req, res) => {
+    if (!deps.updateTicket) return res.status(500).json({ error: 'Erro interno.' });
     const label = String(req.body?.priority_label ?? '');
     const level = String(req.body?.priority_level ?? '');
+    const status = String(req.body?.status ?? '');
     try {
-      await deps.updateTicketPriority(req.params.id, label, level);
+      await deps.updateTicket(req.params.id, label, level, status);
       res.json({ ok: true });
     } catch (err) {
       if (err instanceof InvalidPriorityError || /inválid/i.test(String((err as Error)?.message))) {
@@ -93,6 +94,11 @@ export function createApp(deps: Deps): Express {
       console.error(err);
       res.status(500).json({ error: 'Erro interno.' });
     }
+  });
+
+  app.get('/api/open-tickets', async (_req, res) => {
+    try { res.json(await deps.fetchOpenTickets()); }
+    catch (err) { console.error(err); res.status(500).json({ error: 'Erro interno.' }); }
   });
 
   app.get('/api/dashboard', async (_req, res) => {

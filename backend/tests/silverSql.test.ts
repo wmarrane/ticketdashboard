@@ -84,33 +84,31 @@ describe('buildSilverSql', () => {
     expect(sql).toContain("'Melhoria', 'Improvement'");
   });
 
-  it('faz LEFT JOIN em ticket_overrides deduplicado por argMax', () => {
+  it('faz LEFT JOIN em ticket_overrides deduplicado por argMax (status + prioridade)', () => {
     expect(sql).toContain('tickets.ticket_overrides');
     expect(sql).toContain('argMax(priority_label, updated_at)');
     expect(sql).toContain('argMax(priority_level, updated_at)');
-    expect(sql).toContain('ovr_label');
-    expect(sql).toContain('ovr_level');
+    expect(sql).toContain('argMax(status, updated_at)');
     expect(sql).toContain('ON bronze.ticket_id = ovr.ticket_id');
   });
 
-  it('prioridade final usa o override quando presente', () => {
-    expect(sql).toContain("if(ovr_label != '', ovr_label, priority_label)");
-    expect(sql).toContain("if(ovr_level != '', ovr_level, priority_level)");
+  it('status e prioridade finais usam o override quando presente', () => {
+    expect(sql).toContain("if(ovr.status != '', ovr.status, bronze.status) AS status");
+    expect(sql).toContain("if(ovr.priority_label != '', ovr.priority_label, bronze.priority_label)");
+    expect(sql).toContain("if(ovr.priority_level != '', ovr.priority_level, bronze.priority_level)");
   });
 
-  it('priority_label_en deriva do label FINAL (após o override)', () => {
-    // Estrutura: subconsulta interna calcula priority_label sobreposto;
-    // o SELECT externo deriva priority_label_en desse valor já sobreposto.
-    // Ambas as expressões coexistem e a derivação label_en referencia o alias
-    // priority_label (não uma coluna crua da bronze).
-    expect(sql).toContain("if(ovr_label != '', ovr_label, priority_label) AS priority_label");
-    expect(sql).toContain("priority_label = 'Urgente!', 'Urgent!'");
-    // O override é uma subconsulta FROM sobre a qual o SELECT externo aplica o
-    // multiIf: o alias `AS priority_label_en` fica antes do FROM da subconsulta.
-    const labelEnAlias = sql.indexOf('AS priority_label_en');
-    const innerOverride = sql.indexOf("if(ovr_label != '', ovr_label, priority_label) AS priority_label");
-    expect(labelEnAlias).toBeGreaterThan(-1);
-    expect(innerOverride).toBeGreaterThan(labelEnAlias);
+  it('override aplicado no nível interno alimenta step/is_open/label_en', () => {
+    // Override de status/prioridade é resolvido na subconsulta mais interna
+    // (referencia bronze.status); step_pt/en, is_open e priority_label_en, em
+    // níveis acima, referenciam o identificador `status`/`priority_label` já
+    // sobreposto — a corretude vem do escopo SQL, não da ordem do texto.
+    expect(sql).toContain("if(ovr.status != '', ovr.status, bronze.status) AS status");
+    expect(sql).toContain("if(status NOT IN ('Completed', 'Cancelled', 'Stopped'), 1, 0) AS is_open");
+    expect(sql).toContain('AS priority_label_en');
+    // is_open não pode referenciar bronze.status diretamente (usaria o valor
+    // sem override).
+    expect(sql).not.toContain('bronze.status NOT IN');
   });
 });
 
@@ -127,8 +125,9 @@ describe('buildSilverRefreshSql', () => {
     expect(sql).toContain("if(task_name_en != '', task_name_en, coalesce(cached_en, ''))");
   });
 
-  it('também aplica os overrides de prioridade', () => {
+  it('também aplica os overrides de status e prioridade', () => {
     expect(sql).toContain('tickets.ticket_overrides');
-    expect(sql).toContain("if(ovr_label != '', ovr_label, priority_label)");
+    expect(sql).toContain("if(ovr.status != '', ovr.status, bronze.status) AS status");
+    expect(sql).toContain("if(ovr.priority_label != '', ovr.priority_label, bronze.priority_label)");
   });
 });
