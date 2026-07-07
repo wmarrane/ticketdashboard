@@ -13,7 +13,7 @@ Dashboards do Apache Superset construídos sobre as views **gold** do ClickHouse
 Cada dashboard contém:
 
 - **Big numbers** (linha 1): Total de Tickets / Total Tickets, Urgentes Abertos / Urgent Open, Itens Abertos / Open Items, Concluídos / Completed
-- **Tabelas**: Distribuição por Status / Status Distribution, Distribuição por Prioridade / Priority Distribution, Níveis de Prioridade (P0–P5) / Priority Levels (P0–P5), Top 5 Financeiro / Top 5 Finance, Top 5 Estoque / Top 5 Inventory
+- **Tabelas**: Distribuição por Status / Status Distribution, Distribuição por Prioridade / Priority Distribution, Níveis de Prioridade (P0–P5) / Priority Levels (P0–P5), Top 5 Financeiro / Top 5 Finance, Top 5 Estoque / Top 5 Inventory, Top 5 Aguardando Cliente / Top 5 Waiting Customer
 
 ## Pré-requisito: driver ClickHouse
 
@@ -55,6 +55,7 @@ docker restart superset
 | `gold_priority_levels` | priority_level (P0–P5), qty, pct |
 | `gold_top5_financeiro` | top 5 tickets da área Financeiro por prioridade |
 | `gold_top5_estoque` | top 5 tickets da área Estoque por prioridade |
+| `gold_top5_waiting_customer` | top 5 tickets com status Waiting Customer por prioridade |
 
 ## Exports
 
