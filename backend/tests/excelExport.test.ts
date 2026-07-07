@@ -161,41 +161,38 @@ describe('buildWorkbook', () => {
     expect(ws.getCell('F23').value).toBe(3);
   });
 
-  it('Dashboard lista cards prioritários P0/P1 ativos', () => {
+  it('Dashboard: TOP 5 Financeiro em I7 (ordenado por rótulo)', () => {
     const ws = wb.getWorksheet('Dashboard')!;
+    expect(ws.getCell('I7').value).toBe('TOP 5 FINANCEIRO');
     expect(ws.getCell('I8').value).toBe('Status Wrike');
-    // P0 primeiro
     expect(ws.getCell('I9').value).toBe('In Progress');
     expect(ws.getCell('J9').value).toBe('Tarefa Um');
     expect(ws.getCell('K9').value).toBe('10/07/2026');
     expect(ws.getCell('L9').value).toBe('ana@ituran.com.br');
     expect(ws.getCell('M9').value).toBe('Em análise pelo fornecedor');
     expect(ws.getCell('N9').value).toBe('Oracle');
-    // P1 depois
-    expect(ws.getCell('I10').value).toBe('Pendente Terceiros');
-    expect(ws.getCell('J10').value).toBe('Tarefa Três');
   });
 
-  it('Dashboard tem seções de cards prioritários por área (Financeiro/Estoque)', () => {
+  it('Dashboard: TOP 5 Estoque e TOP 5 Aguardando Cliente abaixo', () => {
     const ws = wb.getWorksheet('Dashboard')!;
-    // seção principal termina na linha 10 (2 cards) → 2 linhas em branco → título na 13
-    expect(ws.getCell('I13').value).toBe('CARDS PRIORITÁRIOS (P0/P1) ATIVOS — FINANCEIRO');
-    expect(ws.getCell('I14').value).toBe('Status Wrike');
-    expect(ws.getCell('J15').value).toBe('Tarefa Um'); // área Financeiro
-    expect(ws.getCell('N15').value).toBe('Oracle');
-    // Financeiro termina na 15 → 2 em branco → Estoque na 18
-    expect(ws.getCell('I18').value).toBe('CARDS PRIORITÁRIOS (P0/P1) ATIVOS — ESTOQUE');
-    expect(ws.getCell('I19').value).toBe('Status Wrike');
-    expect(ws.getCell('J20').value).toBe('Tarefa Três'); // área Estoque
-    expect(ws.getCell('M20').value).toBe('Chamado Oracle');
+    // Financeiro tem 1 card (I9) → 2 linhas em branco → Estoque na 12
+    expect(ws.getCell('I12').value).toBe('TOP 5 ESTOQUE');
+    expect(ws.getCell('I13').value).toBe('Status Wrike');
+    expect(ws.getCell('J14').value).toBe('Tarefa Três'); // área Estoque
+    expect(ws.getCell('M14').value).toBe('Chamado Oracle');
+    expect(ws.getCell('N14').value).toBe('Netsoft');
+    // Estoque tem 1 card (I14) → 2 em branco → Aguardando Cliente na 17
+    expect(ws.getCell('I17').value).toBe('TOP 5 AGUARDANDO CLIENTE');
+    expect(ws.getCell('I18').value).toBe('Status Wrike');
   });
 
-  it('Dashboard (EN) tem seções de cards por área em inglês', () => {
+  it('Dashboard (EN) tem as 3 seções Top 5 em inglês', () => {
     const ws = wb.getWorksheet('Dashboard (EN)')!;
-    expect(ws.getCell('I13').value).toBe('ACTIVE PRIORITY CARDS (P0/P1) — FINANCE');
-    expect(ws.getCell('J15').value).toBe('Task One');
-    expect(ws.getCell('I18').value).toBe('ACTIVE PRIORITY CARDS (P0/P1) — INVENTORY');
-    expect(ws.getCell('J20').value).toBe('Task Three');
+    expect(ws.getCell('I7').value).toBe('TOP 5 FINANCE');
+    expect(ws.getCell('J9').value).toBe('Task One');
+    expect(ws.getCell('I12').value).toBe('TOP 5 INVENTORY');
+    expect(ws.getCell('J14').value).toBe('Task Three');
+    expect(ws.getCell('I17').value).toBe('TOP 5 WAITING CUSTOMER');
   });
 
   it('Dashboard (EN) usa textos em inglês, task_name_en e step_en', () => {
@@ -228,7 +225,7 @@ describe('buildWorkbook', () => {
   it('Dashboard (EN) faz fallback para task_name quando task_name_en vazio', async () => {
     const only = ticket({
       ticket_id: '9', status: 'Backlog', task_name: 'Só PT', task_name_en: '',
-      priority_level: 'P1', is_open: 1,
+      priority_level: 'P1', is_open: 1, area: 'Financeiro',
     });
     const buffer = await buildWorkbook({ generatedAt: new Date(2026, 6, 4), tickets: [only] });
     const wb2 = new ExcelJS.Workbook();
@@ -236,7 +233,7 @@ describe('buildWorkbook', () => {
     expect(wb2.getWorksheet('Dashboard (EN)')!.getCell('J9').value).toBe('Só PT');
   });
 
-  it('exclui tickets em Validation dos cards prioritários (P0/P1)', async () => {
+  it('exclui tickets em Validation do TOP 5', async () => {
     const buffer = await buildWorkbook({
       generatedAt: new Date(2026, 6, 4),
       tickets: [

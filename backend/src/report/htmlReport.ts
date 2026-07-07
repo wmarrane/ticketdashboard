@@ -19,6 +19,7 @@ export interface DashboardData {
   priorityLevels: LevelRow[];
   top5Financeiro: TicketRow[];
   top5Estoque: TicketRow[];
+  top5WaitingCustomer: TicketRow[];
 }
 export interface OpenTicketRow {
   ticket_id: string; task_name: string; task_name_en: string;
@@ -42,6 +43,7 @@ const LABELS: Record<ReportLang, Record<string, string>> = {
     priorityLevels: 'Níveis de Prioridade (P0–P5)',
     top5Finance: 'Top 5 Financeiro',
     top5Inventory: 'Top 5 Estoque',
+    top5Waiting: 'Top 5 Aguardando Cliente',
     status: 'Status', step: 'Etapa', qty: 'Qtd', pct: '%',
     priority: 'Prioridade', level: 'Nível',
     task: 'Tarefa', responsible: 'Responsável', dueDate: 'Vencimento', id: 'ID',
@@ -63,6 +65,7 @@ const LABELS: Record<ReportLang, Record<string, string>> = {
     priorityLevels: 'Priority Levels (P0–P5)',
     top5Finance: 'Top 5 Finance',
     top5Inventory: 'Top 5 Inventory',
+    top5Waiting: 'Top 5 Waiting Customer',
     status: 'Status', step: 'Step', qty: 'Qty', pct: '%',
     priority: 'Priority', level: 'Level',
     task: 'Task', responsible: 'Owner', dueDate: 'Due Date', id: 'ID',
@@ -183,6 +186,7 @@ ${tableCard(L.priorityLevels, [L.level, L.qty, L.pct],
     data.priorityLevels.map((r) => [r.priority_level, r.qty, pctFmt(r.pct)]))}
 ${tableCard(L.top5Finance, ticketHeaders, ticketRows(lang, data.top5Financeiro))}
 ${tableCard(L.top5Inventory, ticketHeaders, ticketRows(lang, data.top5Estoque))}
+${tableCard(L.top5Waiting, ticketHeaders, ticketRows(lang, data.top5WaitingCustomer))}
 `;
   return htmlDocument(L.dashboardTitle, lang, generatedAt, body);
 }

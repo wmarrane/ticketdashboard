@@ -27,6 +27,7 @@ const dash: DashboardData = {
   priorityLevels: [{ priority_level: 'P0', qty: 2, pct: 0.02 }],
   top5Financeiro: [ticket],
   top5Estoque: [],
+  top5WaitingCustomer: [],
 };
 
 const openRow: OpenTicketRow = {

@@ -34,9 +34,9 @@ interface DashboardTexts {
   priorityLabel: (row: { label: string; labelEn: string }) => string;
   levelSection: string;
   levelHeader: [string, string, string];
-  cardsSection: string;
   cardsSectionFinance: string;
   cardsSectionInventory: string;
+  cardsSectionWaiting: string;
   cardsHeader: [string, string, string, string, string, string];
   statusName: (s: string) => string;
   total: string;
@@ -62,9 +62,9 @@ const TEXTS_PT: DashboardTexts = {
   priorityLabel: (r) => r.label,
   levelSection: 'NÍVEL DE PRIORIDADE (P0–P5)',
   levelHeader: ['Nível', 'Qtd', '%'],
-  cardsSection: 'CARDS PRIORITÁRIOS (P0/P1) ATIVOS — FOCO IMEDIATO',
-  cardsSectionFinance: 'CARDS PRIORITÁRIOS (P0/P1) ATIVOS — FINANCEIRO',
-  cardsSectionInventory: 'CARDS PRIORITÁRIOS (P0/P1) ATIVOS — ESTOQUE',
+  cardsSectionFinance: 'TOP 5 FINANCEIRO',
+  cardsSectionInventory: 'TOP 5 ESTOQUE',
+  cardsSectionWaiting: 'TOP 5 AGUARDANDO CLIENTE',
   cardsHeader: ['Status Wrike', 'Tarefa', 'Vencimento', 'Responsável Cliente', 'Step', 'Provedor'],
   statusName: (s) => s,
   total: 'Total',
@@ -84,9 +84,9 @@ const TEXTS_EN: DashboardTexts = {
   priorityLabel: (r) => r.labelEn || EN_PRIORITY_FALLBACK[r.label] || r.label,
   levelSection: 'PRIORITY LEVEL (P0–P5)',
   levelHeader: ['Level', 'Qty', '%'],
-  cardsSection: 'ACTIVE PRIORITY CARDS (P0/P1) — IMMEDIATE FOCUS',
-  cardsSectionFinance: 'ACTIVE PRIORITY CARDS (P0/P1) — FINANCE',
-  cardsSectionInventory: 'ACTIVE PRIORITY CARDS (P0/P1) — INVENTORY',
+  cardsSectionFinance: 'TOP 5 FINANCE',
+  cardsSectionInventory: 'TOP 5 INVENTORY',
+  cardsSectionWaiting: 'TOP 5 WAITING CUSTOMER',
   cardsHeader: ['Wrike Status', 'Task', 'Due Date', 'Client Owner', 'Step', 'Provider'],
   statusName: (s) => (s === 'Pendente Terceiros' ? 'Pending Third Parties' : s),
   total: 'Total',
@@ -125,8 +125,24 @@ interface Aggregates {
   priorityTotal: number;
   levelRows: { level: string; qty: number }[];
   levelTotal: number;
-  priorityCards: ExportTicket[];
+  top5Finance: ExportTicket[];
+  top5Estoque: ExportTicket[];
+  top5Waiting: ExportTicket[];
 }
+
+// Rank por rótulo de prioridade: Urgente! > Alta > Normal > Baixa > resto.
+function labelRank(t: ExportTicket): number {
+  return { 'Urgente!': 1, Alta: 2, Normal: 3, Baixa: 4 }[t.priority_label] ?? 5;
+}
+
+// Top 5 por rank de rótulo, desempate por ticket_id.
+function top5By(tickets: ExportTicket[], filter: (t: ExportTicket) => boolean): ExportTicket[] {
+  return tickets.filter(filter)
+    .sort((a, b) => labelRank(a) - labelRank(b) || a.ticket_id.localeCompare(b.ticket_id))
+    .slice(0, 5);
+}
+
+const EXCLUDED_TOP5 = new Set(['Validation', 'Waiting Customer', 'Completed']);
 
 function aggregate(tickets: ExportTicket[]): Aggregates {
   const countBy = (fn: (t: ExportTicket) => boolean) => tickets.filter(fn).length;
@@ -150,11 +166,10 @@ function aggregate(tickets: ExportTicket[]): Aggregates {
     level, qty: countBy((t) => t.priority_level === level),
   }));
 
-  const priorityCards = tickets
-    .filter((t) => (t.priority_level === 'P0' || t.priority_level === 'P1')
-      && Number(t.is_open) === 1 && t.status !== 'Validation')
-    .sort((a, b) => a.priority_level.localeCompare(b.priority_level)
-      || a.ticket_id.localeCompare(b.ticket_id));
+  const openActive = (t: ExportTicket) => Number(t.is_open) === 1 && !EXCLUDED_TOP5.has(t.status);
+  const top5Finance = top5By(tickets, (t) => t.area === 'Financeiro' && openActive(t));
+  const top5Estoque = top5By(tickets, (t) => t.area === 'Estoque' && openActive(t));
+  const top5Waiting = top5By(tickets, (t) => t.status === 'Waiting Customer');
 
   return {
     total: tickets.length,
@@ -166,7 +181,9 @@ function aggregate(tickets: ExportTicket[]): Aggregates {
     priorityTotal: priorityRows.reduce((s, r) => s + r.qty, 0),
     levelRows,
     levelTotal: levelRows.reduce((s, r) => s + r.qty, 0),
-    priorityCards,
+    top5Finance,
+    top5Estoque,
+    top5Waiting,
   };
 }
 
@@ -355,13 +372,11 @@ function addDashboardSheet(wb: ExcelJS.Workbook, name: string,
     return cardRow - 1;
   };
 
-  // Cards prioritários (I7..), seguidos das seções por área (Financeiro/Estoque)
+  // Três seções Top 5 (Financeiro, Estoque, Aguardando Cliente) a partir de I7,
   // com 2 linhas em branco entre cada seção.
-  let lastRow = cardsTable(7, texts.cardsSection, agg.priorityCards);
-  lastRow = cardsTable(lastRow + 3, texts.cardsSectionFinance,
-    agg.priorityCards.filter((t) => t.area === 'Financeiro'));
-  cardsTable(lastRow + 3, texts.cardsSectionInventory,
-    agg.priorityCards.filter((t) => t.area === 'Estoque'));
+  let lastRow = cardsTable(7, texts.cardsSectionFinance, agg.top5Finance);
+  lastRow = cardsTable(lastRow + 3, texts.cardsSectionInventory, agg.top5Estoque);
+  cardsTable(lastRow + 3, texts.cardsSectionWaiting, agg.top5Waiting);
 }
 
 function addCardsSheet(wb: ExcelJS.Workbook, tickets: ExportTicket[]): void {

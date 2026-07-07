@@ -28,7 +28,7 @@ const fakeDeps = {
   queryGold: vi.fn().mockResolvedValue({
     bigNumbers: { total_tickets: 97, urgent_open: 11, open_items: 41, completed: 43 },
     statusDistribution: [], priorityDistribution: [], priorityLevels: [],
-    top5Financeiro: [], top5Estoque: [],
+    top5Financeiro: [], top5Estoque: [], top5WaitingCustomer: [],
   }),
   listUploads: vi.fn().mockResolvedValue([]),
   fetchExportData: vi.fn().mockResolvedValue({ generatedAt: new Date(), tickets: [] }),
