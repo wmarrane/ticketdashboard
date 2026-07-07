@@ -131,7 +131,7 @@ CREATE OR REPLACE VIEW tickets.gold_top5_financeiro AS
 SELECT ticket_id, task_name, task_name_en, priority_level, priority_label,
        priority_label_en, status, step_pt, step_en, responsible, fix_owner, due_date
 FROM tickets.silver_tickets
-WHERE area = 'Financeiro' AND is_open = 1
+WHERE area = 'Financeiro' AND is_open = 1 AND status != 'Validation'
 ORDER BY (priority_level = ''), priority_level ASC
 LIMIT 5;
 
@@ -139,7 +139,7 @@ CREATE OR REPLACE VIEW tickets.gold_top5_estoque AS
 SELECT ticket_id, task_name, task_name_en, priority_level, priority_label,
        priority_label_en, status, step_pt, step_en, responsible, fix_owner, due_date
 FROM tickets.silver_tickets
-WHERE area = 'Estoque' AND is_open = 1
+WHERE area = 'Estoque' AND is_open = 1 AND status != 'Validation'
 ORDER BY (priority_level = ''), priority_level ASC
 LIMIT 5;
 

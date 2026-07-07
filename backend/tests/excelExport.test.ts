@@ -235,4 +235,24 @@ describe('buildWorkbook', () => {
     await wb2.xlsx.load(buffer);
     expect(wb2.getWorksheet('Dashboard (EN)')!.getCell('J9').value).toBe('Só PT');
   });
+
+  it('exclui tickets em Validation dos cards prioritários (P0/P1)', async () => {
+    const buffer = await buildWorkbook({
+      generatedAt: new Date(2026, 6, 4),
+      tickets: [
+        ticket({ ticket_id: 'VAL', status: 'Validation', task_name: 'Em UAT',
+          priority_level: 'P0', is_open: 1, area: 'Financeiro' }),
+        ticket({ ticket_id: 'ATV', status: 'In Progress', task_name: 'Ativo',
+          priority_level: 'P1', is_open: 1, area: 'Financeiro' }),
+      ],
+    });
+    const wb2 = new ExcelJS.Workbook();
+    await wb2.xlsx.load(buffer);
+    const ws = wb2.getWorksheet('Dashboard')!;
+    // Primeira linha dos cards prioritários (I9): deve ser o ativo, não o Validation.
+    expect(ws.getCell('J9').value).toBe('Ativo');
+    // Nenhuma célula da coluna J deve conter o ticket em Validation.
+    const jValues = ws.getColumn('J').values.map((v) => String(v ?? ''));
+    expect(jValues).not.toContain('Em UAT');
+  });
 });

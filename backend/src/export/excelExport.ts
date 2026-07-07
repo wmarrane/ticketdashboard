@@ -151,7 +151,8 @@ function aggregate(tickets: ExportTicket[]): Aggregates {
   }));
 
   const priorityCards = tickets
-    .filter((t) => (t.priority_level === 'P0' || t.priority_level === 'P1') && Number(t.is_open) === 1)
+    .filter((t) => (t.priority_level === 'P0' || t.priority_level === 'P1')
+      && Number(t.is_open) === 1 && t.status !== 'Validation')
     .sort((a, b) => a.priority_level.localeCompare(b.priority_level)
       || a.ticket_id.localeCompare(b.ticket_id));
 
