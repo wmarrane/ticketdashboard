@@ -135,10 +135,17 @@ function labelRank(t: ExportTicket): number {
   return { 'Urgente!': 1, Alta: 2, Normal: 3, Baixa: 4 }[t.priority_label] ?? 5;
 }
 
-// Top 5 por rank de rótulo, desempate por ticket_id.
+// Nível para ordenação: P0..P5 → 0..5; vazio por último.
+function levelRank(t: ExportTicket): number {
+  return t.priority_level === '' ? 99 : Number(t.priority_level.slice(1));
+}
+
+// Top 5 por rank de rótulo, depois por nível (P0→P5), desempate por ticket_id.
 function top5By(tickets: ExportTicket[], filter: (t: ExportTicket) => boolean): ExportTicket[] {
   return tickets.filter(filter)
-    .sort((a, b) => labelRank(a) - labelRank(b) || a.ticket_id.localeCompare(b.ticket_id))
+    .sort((a, b) => labelRank(a) - labelRank(b)
+      || levelRank(a) - levelRank(b)
+      || a.ticket_id.localeCompare(b.ticket_id))
     .slice(0, 5);
 }
 

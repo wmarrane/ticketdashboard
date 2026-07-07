@@ -127,9 +127,10 @@ WHERE priority_level != ''
 GROUP BY priority_level
 ORDER BY priority_level ASC;
 
--- Top 5 ordenado por rótulo de prioridade: Urgente! > Alta > Normal > Baixa
--- (e o resto por último). Exclui os status Validation, Waiting Customer e
--- Completed (Completed já sai por is_open, mas fica explícito).
+-- Top 5 ordenado por rótulo de prioridade (Urgente! > Alta > Normal > Baixa >
+-- resto) e, dentro de cada rótulo, por nível (P0 > P1 > ... > P5; vazio por
+-- último). Exclui os status Validation, Waiting Customer e Completed
+-- (Completed já sai por is_open, mas fica explícito).
 CREATE OR REPLACE VIEW tickets.gold_top5_financeiro AS
 SELECT ticket_id, task_name, task_name_en, priority_level, priority_label,
        priority_label_en, status, step_pt, step_en, responsible, fix_owner, due_date
@@ -138,6 +139,7 @@ WHERE area = 'Financeiro' AND is_open = 1
   AND status NOT IN ('Validation', 'Waiting Customer', 'Completed')
 ORDER BY multiIf(priority_label = 'Urgente!', 1, priority_label = 'Alta', 2,
                  priority_label = 'Normal', 3, priority_label = 'Baixa', 4, 5),
+         (priority_level = ''), priority_level ASC,
          ticket_id ASC
 LIMIT 5;
 
@@ -149,6 +151,7 @@ WHERE area = 'Estoque' AND is_open = 1
   AND status NOT IN ('Validation', 'Waiting Customer', 'Completed')
 ORDER BY multiIf(priority_label = 'Urgente!', 1, priority_label = 'Alta', 2,
                  priority_label = 'Normal', 3, priority_label = 'Baixa', 4, 5),
+         (priority_level = ''), priority_level ASC,
          ticket_id ASC
 LIMIT 5;
 
@@ -160,6 +163,7 @@ FROM tickets.silver_tickets
 WHERE status = 'Waiting Customer'
 ORDER BY multiIf(priority_label = 'Urgente!', 1, priority_label = 'Alta', 2,
                  priority_label = 'Normal', 3, priority_label = 'Baixa', 4, 5),
+         (priority_level = ''), priority_level ASC,
          ticket_id ASC
 LIMIT 5;
 
