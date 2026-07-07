@@ -16,4 +16,4 @@ yarn-error.log*
 .idea
 .DS_Store
 .claude/
-.superpowers/
+.superpowers/backend/verify-real-files.mjs
