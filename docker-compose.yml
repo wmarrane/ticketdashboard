@@ -10,10 +10,19 @@ services:
       - "3001"
     restart: unless-stopped
 
+  # LibreTranslate NÃO sobe por padrão: em 4 GB de RAM ele levava a VM a
+  # thrashing e derrubava o painel. Fica atrás do profile "translate" e com
+  # limite de memória — suba sob demanda para traduzir um lote grande:
+  #   docker compose --profile translate up -d libretranslate
+  # Sem ele, o worker de tradução apenas cai no glossário (a tradução já feita
+  # permanece no cache persistente title_translations).
   libretranslate:
     image: libretranslate/libretranslate
     environment:
       LT_LOAD_ONLY: pt,en
+    mem_limit: 1600m
+    profiles:
+      - translate
     restart: unless-stopped
 
   frontend:
