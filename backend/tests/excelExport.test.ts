@@ -167,10 +167,11 @@ describe('buildWorkbook', () => {
     expect(ws.getCell('I8').value).toBe('Status Wrike');
     expect(ws.getCell('I9').value).toBe('In Progress');
     expect(ws.getCell('J9').value).toBe('Tarefa Um');
-    expect(ws.getCell('K9').value).toBe('10/07/2026');
-    expect(ws.getCell('L9').value).toBe('ana@ituran.com.br');
-    expect(ws.getCell('M9').value).toBe('Em análise pelo fornecedor');
-    expect(ws.getCell('N9').value).toBe('Oracle');
+    expect(ws.getCell('K9').value).toBe('Urgente! (P0)'); // coluna Prioridade
+    expect(ws.getCell('L9').value).toBe('10/07/2026');
+    expect(ws.getCell('M9').value).toBe('ana@ituran.com.br');
+    expect(ws.getCell('N9').value).toBe('Em análise pelo fornecedor');
+    expect(ws.getCell('O9').value).toBe('Oracle');
   });
 
   it('Dashboard: TOP 5 Estoque e TOP 5 Aguardando Cliente abaixo', () => {
@@ -179,8 +180,9 @@ describe('buildWorkbook', () => {
     expect(ws.getCell('I12').value).toBe('TOP 5 ESTOQUE');
     expect(ws.getCell('I13').value).toBe('Status Wrike');
     expect(ws.getCell('J14').value).toBe('Tarefa Três'); // área Estoque
-    expect(ws.getCell('M14').value).toBe('Chamado Oracle');
-    expect(ws.getCell('N14').value).toBe('Netsoft');
+    expect(ws.getCell('K14').value).toBe('Alta (P1)'); // coluna Prioridade
+    expect(ws.getCell('N14').value).toBe('Chamado Oracle'); // step
+    expect(ws.getCell('O14').value).toBe('Netsoft'); // provedor
     // Estoque tem 1 card (I14) → 2 em branco → Aguardando Cliente na 17
     expect(ws.getCell('I17').value).toBe('TOP 5 AGUARDANDO CLIENTE');
     expect(ws.getCell('I18').value).toBe('Status Wrike');
@@ -211,8 +213,11 @@ describe('buildWorkbook', () => {
     // 'Baixa' sem ticket na base → fallback do de-para estático
     expect(ws.getCell('E12').value).toBe('Low');
     expect(ws.getCell('I8').value).toBe('Wrike Status');
+    expect(ws.getCell('J8').value).toBe('Task');
+    expect(ws.getCell('K8').value).toBe('Priority'); // cabeçalho da nova coluna
     expect(ws.getCell('J9').value).toBe('Task One');
-    expect(ws.getCell('M9').value).toBe('Under Vendor Analysis');
+    expect(ws.getCell('K9').value).toBe('Urgent! (P0)'); // Prioridade em EN
+    expect(ws.getCell('N9').value).toBe('Under Vendor Analysis'); // step deslocado
   });
 
   it('Dashboard (PT) mantém rótulos de prioridade em português', () => {

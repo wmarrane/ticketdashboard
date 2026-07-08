@@ -37,10 +37,11 @@ interface DashboardTexts {
   cardsSectionFinance: string;
   cardsSectionInventory: string;
   cardsSectionWaiting: string;
-  cardsHeader: [string, string, string, string, string, string];
+  cardsHeader: [string, string, string, string, string, string, string];
   statusName: (s: string) => string;
   total: string;
   taskName: (t: ExportTicket) => string;
+  cardPriority: (t: ExportTicket) => string;
   step: (t: ExportTicket) => string;
 }
 
@@ -65,10 +66,11 @@ const TEXTS_PT: DashboardTexts = {
   cardsSectionFinance: 'TOP 5 FINANCEIRO',
   cardsSectionInventory: 'TOP 5 ESTOQUE',
   cardsSectionWaiting: 'TOP 5 AGUARDANDO CLIENTE',
-  cardsHeader: ['Status Wrike', 'Tarefa', 'Vencimento', 'Responsável Cliente', 'Step', 'Provedor'],
+  cardsHeader: ['Status Wrike', 'Tarefa', 'Prioridade', 'Vencimento', 'Responsável Cliente', 'Step', 'Provedor'],
   statusName: (s) => s,
   total: 'Total',
   taskName: (t) => t.task_name,
+  cardPriority: (t) => `${t.priority_label} (${t.priority_level})`,
   step: (t) => t.step_pt,
 };
 
@@ -87,10 +89,12 @@ const TEXTS_EN: DashboardTexts = {
   cardsSectionFinance: 'TOP 5 FINANCE',
   cardsSectionInventory: 'TOP 5 INVENTORY',
   cardsSectionWaiting: 'TOP 5 WAITING CUSTOMER',
-  cardsHeader: ['Wrike Status', 'Task', 'Due Date', 'Client Owner', 'Step', 'Provider'],
+  cardsHeader: ['Wrike Status', 'Task', 'Priority', 'Due Date', 'Client Owner', 'Step', 'Provider'],
   statusName: (s) => (s === 'Pendente Terceiros' ? 'Pending Third Parties' : s),
   total: 'Total',
   taskName: (t) => t.task_name_en || t.task_name,
+  cardPriority: (t) =>
+    `${t.priority_label_en || EN_PRIORITY_FALLBACK[t.priority_label] || t.priority_label} (${t.priority_level})`,
   step: (t) => t.step_en,
 };
 
@@ -208,12 +212,12 @@ function addDashboardSheet(wb: ExcelJS.Workbook, name: string,
   ws.columns = [
     { width: 20 }, { width: 8 }, { width: 8 }, { width: 3 },
     { width: 22 }, { width: 8 }, { width: 8 }, { width: 3 },
-    { width: 20 }, { width: 50 }, { width: 14 }, { width: 30 },
-    { width: 30 }, { width: 12 },
+    { width: 20 }, { width: 50 }, { width: 14 }, { width: 14 },
+    { width: 30 }, { width: 30 }, { width: 12 },
   ];
 
   // Título e subtítulo
-  styleRange(ws, 1, ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'], (c) => {
+  styleRange(ws, 1, ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'], (c) => {
     c.fill = solidFill(NAVY);
   });
   const a1 = ws.getCell('A1');
@@ -221,7 +225,7 @@ function addDashboardSheet(wb: ExcelJS.Workbook, name: string,
   a1.font = { bold: true, size: 18, color: { argb: WHITE } };
   a1.alignment = { vertical: 'middle' };
   ws.getRow(1).height = 28;
-  ws.mergeCells('A1:N1');
+  ws.mergeCells('A1:O1');
 
   const a2 = ws.getCell('A2');
   a2.value = texts.subtitle(generatedAt);
@@ -359,15 +363,15 @@ function addDashboardSheet(wb: ExcelJS.Workbook, name: string,
 
   // Seção de cards (título + cabeçalho + linhas); retorna a última linha usada.
   const cardsTable = (titleRow: number, title: string, cards: ExportTicket[]): number => {
-    sectionTitle(`I${titleRow}`, title, `N${titleRow}`);
-    tableHeader(titleRow + 1, ['I', 'J', 'K', 'L', 'M', 'N'], texts.cardsHeader);
+    sectionTitle(`I${titleRow}`, title, `O${titleRow}`);
+    tableHeader(titleRow + 1, ['I', 'J', 'K', 'L', 'M', 'N', 'O'], texts.cardsHeader);
     let cardRow = titleRow + 2;
     for (const t of cards) {
       const values = [
-        texts.statusName(t.status), texts.taskName(t), fmtIsoDdMmYyyy(t.due_date),
-        t.responsible, texts.step(t), t.provider,
+        texts.statusName(t.status), texts.taskName(t), texts.cardPriority(t),
+        fmtIsoDdMmYyyy(t.due_date), t.responsible, texts.step(t), t.provider,
       ];
-      ['I', 'J', 'K', 'L', 'M', 'N'].forEach((col, i) => {
+      ['I', 'J', 'K', 'L', 'M', 'N', 'O'].forEach((col, i) => {
         const c = ws.getCell(`${col}${cardRow}`);
         c.value = values[i];
         c.font = { size: 10 };
