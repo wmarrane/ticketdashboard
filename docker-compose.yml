@@ -20,5 +20,45 @@ services:
       start_period: 20s
     restart: unless-stopped
 
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file: .env
+    environment:
+      CLICKHOUSE_URL: http://clickhouse:8123
+      LIBRETRANSLATE_URL: http://libretranslate:5000
+    expose:
+      - "3001"
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # Não sobe por padrão. Suba sob demanda para traduzir um lote grande:
+  #   docker compose --profile translate up -d libretranslate
+  # Sem ele, o worker de tradução cai no glossário estático (a tradução já
+  # feita permanece no cache persistente title_translations).
+  libretranslate:
+    image: libretranslate/libretranslate
+    environment:
+      LT_LOAD_ONLY: pt,en
+    volumes:
+      - libretranslate_models:/home/libretranslate/.local
+    profiles:
+      - translate
+    restart: unless-stopped
+
 volumes:
   clickhouse_data:
+  libretranslate_models:
