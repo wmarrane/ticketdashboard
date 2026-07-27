@@ -59,6 +59,36 @@ services:
       - translate
     restart: unless-stopped
 
+  superset-init:
+    build:
+      context: .
+      dockerfile: superset/Dockerfile
+    env_file: .env
+    volumes:
+      - superset_home:/app/superset_home
+      - ./superset/exports:/exports:ro
+      - ./superset/init.sh:/init.sh:ro
+      - ./superset/patch_export.py:/patch_export.py:ro
+    entrypoint: ["/bin/bash", "/init.sh"]
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+
+  superset:
+    build:
+      context: .
+      dockerfile: superset/Dockerfile
+    env_file: .env
+    ports:
+      - "8088:8088"
+    volumes:
+      - superset_home:/app/superset_home
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
 volumes:
   clickhouse_data:
   libretranslate_models:
+  superset_home:
