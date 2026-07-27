@@ -19,7 +19,17 @@ describe.skipIf(!RUN)('pipeline completo', () => {
     const rs = await client.query({
       query: 'SELECT * FROM tickets.gold_big_numbers', format: 'JSONEachRow',
     });
-    const [big] = await rs.json<Record<string, number>>();
+    // As colunas da gold_big_numbers são UInt64 (count/countIf), e o ClickHouse
+    // serializa inteiros de 64 bits como string em JSON por padrão
+    // (output_format_json_quote_64bit_integers = 1). Converter aqui deixa o
+    // teste independente da configuração do servidor — antes ele dependia de um
+    // ajuste não versionado que existia na VM e não em uma instalação padrão.
+    const [raw] = await rs.json<Record<string, string | number>>();
+    const big = {
+      total_tickets: Number(raw.total_tickets),
+      open_items: Number(raw.open_items),
+      completed: Number(raw.completed),
+    };
     expect(big.total_tickets).toBeGreaterThan(0);
     expect(big.open_items + big.completed).toBeLessThanOrEqual(big.total_tickets);
   }, 30000);

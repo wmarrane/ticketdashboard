@@ -20,7 +20,7 @@ A planilha já vive no SharePoint/OneDrive da equipe: abra no Excel e salve uma 
 
 ## 2. Fazer upload
 
-1. Acesse **http://192.168.56.132** e abra a página **Upload**.
+1. Acesse **http://localhost** e abra a página **Upload**.
 2. Selecione a **fonte** no seletor: Wrike, Loop ou Office 365. *(A fonte marca a origem dos dados na bronze e controla a deduplicação — selecione a fonte correta.)*
 3. Selecione o **arquivo** (`.xlsx` ou `.csv`, máx. 20 MB) e clique em **Enviar**.
 4. O resultado mostra linhas aceitas/rejeitadas; o histórico de cargas na mesma página é atualizado (data, fonte, arquivo, aceitas, rejeitadas, status).
@@ -50,7 +50,7 @@ Para alterar:
 1. Edite `config/area-rules.json` e commit.
 2. **Rebuild e redeploy do backend** (o arquivo é embutido na imagem):
    ```bash
-   # no servidor 192.168.56.132, raiz do repo atualizado
+   # na raiz do repositório
    docker compose up -d --build backend
    ```
 3. **Reprocesse** (seção 5) para reclassificar os tickets já carregados — a área é calculada no rebuild da silver, não retroativamente.
@@ -66,5 +66,5 @@ Não há botão de reprocessamento: a silver é reconstruída a cada upload. Par
 
 ## 6. Onde ver os resultados
 
-- **Frontend:** http://192.168.56.132 — página Dashboard (toggle PT/EN no topo).
-- **Superset:** http://192.168.56.128:8088 — dashboards "Acompanhamento de Tickets (PT)" e "Ticket Tracking (EN)". Basta recarregar; as views gold refletem a silver.
+- **Frontend:** http://localhost — página Dashboard (toggle PT/EN no topo).
+- **Superset:** http://localhost:8088 — dashboards "Acompanhamento de Tickets (PT)" e "Ticket Tracking (EN)". Basta recarregar; as views gold refletem a silver.
