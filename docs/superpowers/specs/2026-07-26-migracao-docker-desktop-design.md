@@ -3,6 +3,36 @@
 **Data:** 2026-07-26
 **Repositório:** https://github.com/wmarrane/ticketdashboard
 
+> ## Correção pós-implementação (2026-07-27)
+>
+> **A decisão de fixar `apache/superset:4.1.4` estava errada e foi revertida
+> para `5.0.0`.** O raciocínio original — "o layout `/app/.venv/bin/python`
+> documentado no `superset/README.md` corresponde ao ramo 4.1.x" — inverteu a
+> evidência: verificado na prática, o `4.1.4` **não tem venv algum** (Python do
+> sistema, sem `/app/.venv`), enquanto o `5.0.0` tem exatamente o venv
+> gerenciado por `uv` que o README descrevia.
+>
+> Mais importante, o problema real do import não era a senha. Os zips de
+> `superset/exports/` vieram de um build **mais novo que qualquer release
+> publicada** e carregam campos que versões anteriores desconhecem
+> (`theme_uuid`, `folders`, `currency_code_column`, `datetime_format`,
+> `configuration_method`). O validador do Superset **rejeita campo desconhecido
+> em vez de ignorá-lo**, então o import falhava com `Unknown field` tanto no
+> 4.1.4 quanto no 5.0.0.
+>
+> A solução implementada é independente de versão: `superset/patch_export.py`
+> gera uma cópia temporária do bundle sem esses campos de apresentação e com a
+> `sqlalchemy_uri` corrigida. Os zips versionados seguem intactos. Isso torna
+> obsoleta a seção "Superset" abaixo no que diz respeito à tag e à ordem
+> `import → set_database_uri` (a URI agora é corrigida **dentro** do bundle,
+> antes do import; o `set_database_uri` permanece apenas como rede de
+> segurança para o caminho manual).
+>
+> Também descoberto na migração dos dados: as tabelas da VM haviam derivado do
+> `setup.sql` via `ALTER TABLE ADD COLUMN`, então `silver_tickets` e
+> `ticket_overrides` tinham as mesmas colunas em **ordem diferente**. A cópia
+> passou a ser feita por nome de coluna, não com `SELECT *`.
+
 ## Objetivo
 
 Migrar a aplicação inteira — app, ClickHouse e Superset — das três VMs VirtualBox (`192.168.56.127`, `.128`, `.132`) para um único stack Docker Compose rodando no Docker Desktop da máquina Windows. As VMs são aposentadas; a stack local passa a ser o ambiente definitivo.

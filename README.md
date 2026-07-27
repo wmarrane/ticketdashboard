@@ -8,17 +8,19 @@ Dashboards de acompanhamento de tickets em **português e inglês**, alimentados
 Fontes (exportação manual: Wrike, Loop, Office 365 → Excel/CSV)
         │ upload via navegador
         ▼
-192.168.56.132 — Docker
-  • frontend: React (Vite) servido por Nginx (porta 80)
-  • backend: Node/Express TypeScript (porta 3001)
+Docker Desktop (local) — docker compose
+  • frontend: React (Vite) servido por Nginx — http://localhost
+    - proxy /api → backend:3001
+  • backend: Node/Express TypeScript (3001, interno à rede do Compose)
     - POST /api/upload → parseia Excel (SheetJS), grava bronze,
       executa SQL de reconstrução silver/gold
     - GET /api/* → consultas na gold para o frontend
         ▼
-192.168.56.127 — ClickHouse, banco `tickets`
-  bronze_* → silver_* → gold_*
+  • clickhouse: banco `tickets` — 127.0.0.1:8123
+      bronze_* → silver_* → gold_*
         ▲
-192.168.56.128 — Superset (2 dashboards: PT e EN, lendo a gold)
+  • superset: http://localhost:8088 (2 dashboards: PT e EN, lendo a gold)
+  • libretranslate: sob demanda (profile `translate`)
 ```
 
 ## Stack
@@ -28,36 +30,36 @@ Fontes (exportação manual: Wrike, Loop, Office 365 → Excel/CSV)
 | Frontend | React 18 + Vite, TypeScript, Nginx (produção) |
 | Backend | Node.js + Express, TypeScript, SheetJS (xlsx), multer |
 | Banco | ClickHouse (HTTP, porta 8123), banco `tickets` |
-| BI | Apache Superset (Docker) + driver `clickhouse-connect` |
-| Deploy | Docker Compose (servidor 192.168.56.132) |
+| BI | Apache Superset 5.0.0 (Docker) + driver `clickhouse-connect` embutido no build |
+| Deploy | Docker Compose no Docker Desktop (local) |
 | Testes | Vitest (28 unitários + 1 integração) |
 
 ## Quickstart
 
-Pré-requisito: ClickHouse acessível em `192.168.56.127:8123` (veja [docs/instalacao.md](docs/instalacao.md)).
+Pré-requisito: Docker Desktop (o plano gratuito cobre uso pessoal). Veja [docs/instalacao.md](docs/instalacao.md).
 
 ```bash
-# 1. Criar schema no ClickHouse (banco tickets, tabelas e views gold)
-cd backend
-cp .env.example .env   # ajustar credenciais do ClickHouse se necessário
-npm install
-npm run setup-db
+# 1. Configurar o .env da raiz
+cp .env.example .env
+# ajustar CLICKHOUSE_USER/PASSWORD e as variáveis SUPERSET_*
+# gerar a chave: openssl rand -base64 42
 
-# 2. Subir os containers (no servidor 192.168.56.132, raiz do repo com .env)
+# 2. Subir a stack inteira
 docker compose up -d --build
 
 # 3. Abrir o app
-# http://192.168.56.132  → Dashboard e página de Upload
+# http://localhost       → Dashboard e página de Upload
+# http://localhost:8088  → Superset (dashboards PT e EN)
 ```
 
-Superset: http://192.168.56.128:8088 — dashboards "Acompanhamento de Tickets (PT)" e "Ticket Tracking (EN)". Importação a partir de `superset/exports/`: veja [superset/README.md](superset/README.md).
+Não há passo de criação de schema: o `backend/sql/setup.sql` é executado pelo ClickHouse no primeiro boot, e o `superset-init` faz o bootstrap do Superset e importa os dois dashboards. Detalhes em [superset/README.md](superset/README.md).
 
 ## Testes
 
 ```bash
 cd backend
 npm test                              # unitários (parser, classificador, SQL, API)
-RUN_INTEGRATION=1 npm test            # inclui integração (requer ClickHouse acessível)
+RUN_INTEGRATION=1 npm test            # inclui integração (requer o container clickhouse no ar)
 
 cd frontend
 npm test                              # unitários (i18n)
@@ -77,8 +79,9 @@ npm test                              # unitários (i18n)
 ├── backend/          # Express + ETL (parser Excel, execução SQL)
 │   └── sql/          # setup.sql (banco, tabelas, views gold)
 ├── frontend/         # React (Vite) — dashboard + upload
-├── superset/         # exports dos dashboards + guia de importação
+├── superset/         # Dockerfile, bootstrap, exports dos dashboards + guia
 ├── config/           # area-rules.json (palavras-chave Financeiro/Estoque)
+├── scripts/          # migrate-from-vm.sh (migração das VMs, uso histórico)
 ├── docs/             # documentação do projeto
 └── docker-compose.yml
 ```

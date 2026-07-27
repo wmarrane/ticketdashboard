@@ -1,6 +1,6 @@
 # Dicionário de Dados
 
-Banco: `tickets` (ClickHouse, 192.168.56.127:8123). Schema em `backend/sql/setup.sql`; transformação silver gerada por `backend/src/pipeline/silverSql.ts`.
+Banco: `tickets` (ClickHouse do Compose, publicado em `127.0.0.1:8123`). Schema em `backend/sql/setup.sql`; transformação silver gerada por `backend/src/pipeline/silverSql.ts`.
 
 ## Bronze — `tickets.bronze_tickets_raw`
 
@@ -97,7 +97,7 @@ O mesmo arquivo alimenta o classificador em TypeScript (testes) e o SQL da silve
 - **Urgentes abertos** = `priority_label = 'Urgente!'` **e** `is_open = 1`
 - **Concluídos** = `status = 'Completed'`
 
-## Gold — 6 views sobre a silver
+## Gold — 8 views sobre a silver
 
 ### `gold_big_numbers` (1 linha)
 
